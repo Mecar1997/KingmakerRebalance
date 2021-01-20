@@ -176,8 +176,8 @@ namespace CallOfTheWild
             warpriest_class.StartingGold = paladin_class.StartingGold;
             warpriest_class.PrimaryColor = paladin_class.PrimaryColor;
             warpriest_class.SecondaryColor = paladin_class.SecondaryColor;
-            warpriest_class.RecommendedAttributes = cleric_class.RecommendedAttributes;
-            warpriest_class.NotRecommendedAttributes = cleric_class.NotRecommendedAttributes;
+            warpriest_class.RecommendedAttributes = paladin_class.RecommendedAttributes;
+            warpriest_class.NotRecommendedAttributes = paladin_class.NotRecommendedAttributes;
             warpriest_class.EquipmentEntities = paladin_class.EquipmentEntities;
             warpriest_class.MaleEquipmentEntities = paladin_class.MaleEquipmentEntities;
             warpriest_class.FemaleEquipmentEntities = paladin_class.FemaleEquipmentEntities;
@@ -220,18 +220,19 @@ namespace CallOfTheWild
         {
             var cleric_class = library.Get<BlueprintCharacterClass>("67819271767a9dd4fbfd4ae700befea0");
             var magus_class = library.Get<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
+            var bard_class = library.Get<BlueprintCharacterClass>("772c83a25e2268e448e841dcd548235f");
             var warpriest_spellbook = Helpers.Create<BlueprintSpellbook>();
             warpriest_spellbook.Name = warpriest_class.LocalizedName;
             warpriest_spellbook.name = "WarpriestSpellbook";
             library.AddAsset(warpriest_spellbook, "");
             warpriest_spellbook.Name = warpriest_class.LocalizedName;
-            warpriest_spellbook.SpellsPerDay = magus_class.Spellbook.SpellsPerDay;
-            warpriest_spellbook.SpellsKnown = magus_class.Spellbook.SpellsKnown;
-            warpriest_spellbook.Spontaneous = false;
+            warpriest_spellbook.SpellsPerDay = bard_class.Spellbook.SpellsPerDay;
+            warpriest_spellbook.SpellsKnown = bard_class.Spellbook.SpellsKnown;
+            warpriest_spellbook.Spontaneous = true;
             warpriest_spellbook.IsArcane = false;
             warpriest_spellbook.AllSpellsKnown = true;
             warpriest_spellbook.CanCopyScrolls = false;
-            warpriest_spellbook.CastingAttribute = StatType.Wisdom;
+            warpriest_spellbook.CastingAttribute = StatType.Charisma;
             warpriest_spellbook.CharacterClass = warpriest_class;
             warpriest_spellbook.CasterLevelModifier = 0;
             warpriest_spellbook.CantripsType = CantripsType.Orisions;
@@ -417,7 +418,7 @@ namespace CallOfTheWild
         {
             warpriest_fervor_resource = Helpers.CreateAbilityResource("WarpriestFervorResource", "", "", "", null);
             warpriest_fervor_resource.SetIncreasedByLevelStartPlusDivStep(0, 2, 1, 2, 1, 0, 0.0f, getWarpriestArray());
-            warpriest_fervor_resource.SetIncreasedByStat(0, StatType.Wisdom);
+            warpriest_fervor_resource.SetIncreasedByStat(0, StatType.Charisma);
 
             warpriest_extra_channel_resource = Helpers.CreateAbilityResource("WarpriestExtraChannelResource", "", "", "", null);
             warpriest_extra_channel_resource.SetFixedResource(0);
@@ -479,7 +480,7 @@ namespace CallOfTheWild
 
             var fervor_positive_ability_others = Helpers.CreateAbility("WarpriestFervorPositiveOthersTouchAbility",
                                                                         "Fervor (Positive Energy) Others",
-                                                                        "At 2nd level, a warpriest can draw upon the power of his faith to heal wounds or harm foes. This ability can be used a number of times per day equal to 1/2 his warpriest level + his Wisdom modifier. By expending one use of this ability, a good warpriest (or one who worships a good deity) can touch a creature to heal it of 1d6 points of damage, plus an additional 1d6 points of damage for every 3 warpriest levels he possesses above 2nd (to a maximum of 7d6 at 20th level). Using this ability is a standard action (unless the warpriest targets himself, in which case it’s a swift action). Alternatively, the warpriest can use this ability to harm an undead creature, dealing the same amount of damage he would otherwise heal with a melee touch attack. Using fervor in this way is a standard action that provokes an attack of opportunity. Undead do not receive a saving throw against this damage. This counts as positive energy.",
+                                                                        "At 2nd level, a warpriest can draw upon the power of his faith to heal wounds or harm foes. This ability can be used a number of times per day equal to 1/2 his warpriest level + his Charisma modifier. By expending one use of this ability, a good warpriest (or one who worships a good deity) can touch a creature to heal it of 1d6 points of damage, plus an additional 1d6 points of damage for every 3 warpriest levels he possesses above 2nd (to a maximum of 7d6 at 20th level). Using this ability is a standard action (unless the warpriest targets himself, in which case it’s a swift action). Alternatively, the warpriest can use this ability to harm an undead creature, dealing the same amount of damage he would otherwise heal with a melee touch attack. Using fervor in this way is a standard action that provokes an attack of opportunity. Undead do not receive a saving throw against this damage. This counts as positive energy.",
                                                                         "",
                                                                         cure_light_wounds.Icon,
                                                                         AbilityType.Supernatural,
@@ -532,7 +533,7 @@ namespace CallOfTheWild
             var deaths_embrace_living = library.Get<BlueprintFeature>("fd7c08ccd3c7773458eb9613db3e93ad");
             var fervor_negative_ability_others = Helpers.CreateAbility("WarpriestFervorNegativeTouchOthersAbility",
                                                             "Fervor (Negative Energy) Others",
-                                                            "At 2nd level, a warpriest can draw upon the power of his faith to heal wounds or harm foes. This ability can be used a number of times per day equal to 1/2 his warpriest level + his Wisdom modifier. By expending one use of this ability, an evil warpriest (or one who worships an evil deity) can touch a living creature and deal to it 1d6 points of damage, plus an additional 1d6 points of damage for every 3 warpriest levels he possesses above 2nd (to a maximum of 7d6 at 20th level). Using this ability is a standard action (unless the warpriest targets himself, in which case it’s a swift action). Alternatively, the warpriest can use this ability to heal an undead creature for same amount of damage he would otherwise deal with a melee touch attack. Using fervor in this way is a standard action that provokes an attack of opportunity. Living creatures do not receive a saving throw against this damage. This counts as negative energy.",
+                                                            "At 2nd level, a warpriest can draw upon the power of his faith to heal wounds or harm foes. This ability can be used a number of times per day equal to 1/2 his warpriest level + his Charisma modifier. By expending one use of this ability, an evil warpriest (or one who worships an evil deity) can touch a living creature and deal to it 1d6 points of damage, plus an additional 1d6 points of damage for every 3 warpriest levels he possesses above 2nd (to a maximum of 7d6 at 20th level). Using this ability is a standard action (unless the warpriest targets himself, in which case it’s a swift action). Alternatively, the warpriest can use this ability to heal an undead creature for same amount of damage he would otherwise deal with a melee touch attack. Using fervor in this way is a standard action that provokes an attack of opportunity. Living creatures do not receive a saving throw against this damage. This counts as negative energy.",
                                                             "",
                                                             inflict_light_wounds.Icon,
                                                             AbilityType.Supernatural,
@@ -584,7 +585,7 @@ namespace CallOfTheWild
 
             warpriest_fervor = Helpers.CreateFeature("WarpriestFervorFeature",
                                                      "Fervor",
-                                                     "At 2nd level, a warpriest can draw upon the power of his faith to heal wounds or harm foes. This ability can be used a number of times per day equal to 1/2 his warpriest level + his Wisdom modifier. By expending one use of this ability, a good warpriest (or one who worships a good deity) can touch a creature to heal it of 1d6 points of damage, plus an additional 1d6 points of damage for every 3 warpriest levels he possesses above 2nd (to a maximum of 7d6 at 20th level). Using this ability is a standard action (unless the warpriest targets himself, in which case it’s a swift action). Alternatively, the warpriest can use this ability to harm an undead creature, dealing the same amount of damage he would otherwise heal with a melee touch attack. Using fervor in this way is a standard action that provokes an attack of opportunity. Undead do not receive a saving throw against this damage. This counts as positive energy.\n"
+                                                     "At 2nd level, a warpriest can draw upon the power of his faith to heal wounds or harm foes. This ability can be used a number of times per day equal to 1/2 his warpriest level + his Charisma modifier. By expending one use of this ability, a good warpriest (or one who worships a good deity) can touch a creature to heal it of 1d6 points of damage, plus an additional 1d6 points of damage for every 3 warpriest levels he possesses above 2nd (to a maximum of 7d6 at 20th level). Using this ability is a standard action (unless the warpriest targets himself, in which case it’s a swift action). Alternatively, the warpriest can use this ability to harm an undead creature, dealing the same amount of damage he would otherwise heal with a melee touch attack. Using fervor in this way is a standard action that provokes an attack of opportunity. Undead do not receive a saving throw against this damage. This counts as positive energy.\n"
                                                      + "An evil warpriest(or one who worships an evil deity) can use this ability to instead deal damage to living creatures with a melee touch attack and heal undead creatures with a touch.This counts as negative energy.\n"
                                                      + "A neutral warpriest who worships a neutral deity(or one who is not devoted to a particular deity) uses this ability as a good warpriest if he chose to spontaneously cast cure spells or as an evil warpriest if he chose to spontaneously cast inflict spells.\n"
                                                      + "As a swift action, a warpriest can expend one use of this ability to cast any one single target warpriest spell he has prepared with a casting time of 1 round or shorter. When cast in this way, the spell can target only the warpriest, even if it could normally affect other targets. Spells cast in this way ignore somatic components and do not provoke attacks of opportunity. The warpriest does not need to have a free hand to cast a spell in this way.",
@@ -606,11 +607,11 @@ namespace CallOfTheWild
             var negative_energy_feature = library.Get<BlueprintFeature>("3adb2c906e031ee41a01bfc1d5fb7eea");
             var context_rank_config = Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel, progression: ContextRankProgression.StartPlusDivStep,
                                                                                   type: AbilityRankType.Default, classes: getWarpriestArray(), startLevel: 2, stepLevel: 3);
-            var dc_scaling = Common.createContextCalculateAbilityParamsBasedOnClasses(getWarpriestArray(), StatType.Wisdom);
+            var dc_scaling = Common.createContextCalculateAbilityParamsBasedOnClasses(getWarpriestArray(), StatType.Charisma);
             channel_positive_energy = Helpers.CreateFeature("WarpriestChannelPositiveEnergyFeature",
                                                                 "Channel Positive Energy",
                                                                 "A good warpriest (or a neutral warpriest who worships a good deity) channels positive energy and can choose to deal damage to undead creatures or to heal living creatures.\n"
-                                                                + "Channeling energy causes a burst that either heals all living creatures or damages all undead creatures in a 30-foot radius centered on the warpriest. The amount of damage dealt or healed is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Wisdom modifier. Creatures healed by channel energy cannot exceed their maximum hit point total—all excess healing is lost. Channeling positive energy consumes two uses of fervor ability. This is a standard action that does not provoke an attack of opportunity.",
+                                                                + "Channeling energy causes a burst that either heals all living creatures or damages all undead creatures in a 30-foot radius centered on the warpriest. The amount of damage dealt or healed is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Charisma modifier. Creatures healed by channel energy cannot exceed their maximum hit point total—all excess healing is lost. Channeling positive energy consumes two uses of fervor ability. This is a standard action that does not provoke an attack of opportunity.",
                                                                 "",
                                                                 positive_energy_feature.Icon,
                                                                 FeatureGroup.None);
@@ -626,7 +627,7 @@ namespace CallOfTheWild
             harm_undead = ChannelEnergyEngine.createChannelEnergy(ChannelEnergyEngine.ChannelType.PositiveHarm,
                                                           "WarpriestChannelEnergyHarmUndead",
                                                           "",
-                                                          "Channeling energy causes a burst that damages all undead creatures in a 30 - foot radius centered on the warpriest. The amount of damage dealt is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Wisdom modifier.",
+                                                          "Channeling energy causes a burst that damages all undead creatures in a 30 - foot radius centered on the warpriest. The amount of damage dealt is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Charisma modifier.",
                                                           "",
                                                           context_rank_config,
                                                           dc_scaling,
@@ -662,7 +663,7 @@ namespace CallOfTheWild
             channel_negative_energy = Helpers.CreateFeature("WarpriestChannelNegativeEnergyFeature",
                                                     "Channel Negative Energy",
                                                     "An evil warpriest (or a neutral warpriest who worships an evil deity) channels negative energy and can choose to deal damage to living creatures or to heal undead creatures.\n"
-                                                    + "Channeling energy causes a burst that either heals all undead creatures or damages all living creatures in a 30-foot radius centered on the warpriest. The amount of damage dealt or healed is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Wisdom modifier. Creatures healed by channel energy cannot exceed their maximum hit point total—all excess healing is lost. Channeling negative energy consumes two uses of fervor ability. This is a standard action that does not provoke an attack of opportunity.",
+                                                    + "Channeling energy causes a burst that either heals all undead creatures or damages all living creatures in a 30-foot radius centered on the warpriest. The amount of damage dealt or healed is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Charisma modifier. Creatures healed by channel energy cannot exceed their maximum hit point total—all excess healing is lost. Channeling negative energy consumes two uses of fervor ability. This is a standard action that does not provoke an attack of opportunity.",
                                                     "",
                                                     negative_energy_feature.Icon,
                                                     FeatureGroup.None);
@@ -670,7 +671,7 @@ namespace CallOfTheWild
             var harm_living = ChannelEnergyEngine.createChannelEnergy(ChannelEnergyEngine.ChannelType.NegativeHarm,
                                                           "WarpriestChannelEnergyHarmLiving",
                                                           "",
-                                                          "Channeling energy causes a burst that damages all living creatures in a 30 - foot radius centered on the warpriest. The amount of damage dealt is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Wisdom modifier. Channeling negative energy consumes two uses of fervor ability. This is a standard action that does not provoke an attack of opportunity.",
+                                                          "Channeling energy causes a burst that damages all living creatures in a 30 - foot radius centered on the warpriest. The amount of damage dealt is equal to that of fervor ability. Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the warpriest's level + the warpriest's Charisma modifier. Channeling negative energy consumes two uses of fervor ability. This is a standard action that does not provoke an attack of opportunity.",
                                                           "",
                                                           context_rank_config,
                                                           dc_scaling,
@@ -716,7 +717,7 @@ namespace CallOfTheWild
             warpriest_channel_energy = Helpers.CreateFeature("WarpriestChannelEnergyFeature",
                                                              "Channel energy",
                                                              "Starting at 4th level, a warpriest can release a wave of energy by channeling the power of his faith through his holy (or unholy) symbol. This energy can be used to deal or heal damage, depending on the type of energy channeled and the creatures targeted. Using this ability is a standard action that expends two uses of his fervor ability and doesn’t provoke an attack of opportunity. The warpriest must present a holy (or unholy) symbol to use this ability. A good warpriest (or one who worships a good deity) channels positive energy and can choose to heal living creatures or to deal damage to undead creatures. An evil warpriest (or one who worships an evil deity) channels negative energy and can choose to deal damage to living creatures or heal undead creatures. A neutral warpriest who worships a neutral deity (or one who is not devoted to a particular deity) channels positive energy if he chose to spontaneously cast cure spells or negative energy if he chose to spontaneously cast inflict spells.\n"
-                                                             + "Channeling energy causes a burst that affects all creatures of one type (either undead or living) in a 30 - foot radius centered on the warpriest. The amount of damage dealt or healed is equal to the amount listed in the fervor ability. Creatures that take damage from channeled energy must succeed at a Will saving throw to halve the damage. The save DC is 10 + 1/2 the warpriest’s level + the warpriest’s Wisdom modifier. Creatures healed by channeled energy cannot exceed their maximum hit point total—all excess healing is lost.A warpriest can choose whether or not to include himself in this effect.",
+                                                             + "Channeling energy causes a burst that affects all creatures of one type (either undead or living) in a 30 - foot radius centered on the warpriest. The amount of damage dealt or healed is equal to the amount listed in the fervor ability. Creatures that take damage from channeled energy must succeed at a Will saving throw to halve the damage. The save DC is 10 + 1/2 the warpriest’s level + the warpriest’s Charisma modifier. Creatures healed by channeled energy cannot exceed their maximum hit point total—all excess healing is lost.A warpriest can choose whether or not to include himself in this effect.",
                                                              "",
                                                              null,
                                                              FeatureGroup.None,
@@ -1169,7 +1170,7 @@ namespace CallOfTheWild
             warpriest_blessings = Helpers.CreateFeatureSelection("WarpriestBlessingsSelection",
                                                                  "Blessing",
                                                                  "A warpriest can select any two blessings granted by his deity. Deities grant blessings of the same name as the domains they grant.\n"
-                                                                 + "Each blessing grants a minor power at 1st level and a major power at 10th level. A warpriest can call upon the power of his blessings a number of times per day (in any combination) equal to 3 + 1/2 his warpriest level (to a maximum of 13 times per day at 20th level). Each time he calls upon any one of his blessings, it counts against his daily limit.The save DC for these blessings is equal to 10 + 1/2 the warpriest’s level + the warpriest’s Wisdom modifier.",
+                                                                 + "Each blessing grants a minor power at 1st level and a major power at 10th level. A warpriest can call upon the power of his blessings a number of times per day (in any combination) equal to 3 + 1/2 his warpriest level (to a maximum of 13 times per day at 20th level). Each time he calls upon any one of his blessings, it counts against his daily limit.The save DC for these blessings is equal to 10 + 1/2 the warpriest’s level + the warpriest’s Charisma modifier.",
                                                                  "",
                                                                  null,
                                                                  FeatureGroup.None);
@@ -1765,7 +1766,7 @@ namespace CallOfTheWild
                                                       Helpers.oneMinuteDuration,
                                                       Helpers.willNegates,
                                                       Helpers.CreateRunActions(apply_minor_buff),
-                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Wisdom));
+                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Charisma));
             minor_ability.setMiscAbilityParametersTouchFriendly();
             addBlessingResourceLogic("Charm", minor_ability, quicken: true);
 
@@ -1774,7 +1775,7 @@ namespace CallOfTheWild
             swift_command.ActionType = CommandType.Swift;
             swift_command.Type = AbilityType.SpellLike;
             swift_command.RemoveComponents<SpellComponent>();
-            var dc_replace = Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Wisdom);
+            var dc_replace = Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Charisma);
             swift_command.ReplaceComponent<AbilityVariants>(a => a.Variants = Common.CreateAbilityVariantsReplace(swift_command, "WarpriestCharmDomain",
                                                                                                                   v =>
                                                                                                                   {
@@ -2007,7 +2008,7 @@ namespace CallOfTheWild
                                                       "",
                                                       Helpers.CreateRunActions(apply_major_buff_save),
                                                       blindness_spell.GetComponent<AbilityTargetHasFact>(),
-                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Wisdom)
+                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Charisma)
                                                       );
             major_ability.setMiscAbilityParametersSingleTargetRangedHarmful(test_mode);
             addBlessingResourceLogic("Darkness", major_ability, quicken: true);
@@ -2441,7 +2442,7 @@ namespace CallOfTheWild
                                                       Helpers.oneMinuteDuration,
                                                       Helpers.willNegates,
                                                       Helpers.CreateRunActions(apply_minor_buff),
-                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Wisdom));
+                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Charisma));
             minor_ability.setMiscAbilityParametersTouchFriendly();
             addBlessingResourceLogic("Glory", minor_ability, quicken: true);
 
@@ -2662,7 +2663,7 @@ namespace CallOfTheWild
 
             var minor_ability_resolve = Helpers.CreateAbility("WarpriestKnowledgeMinorBlessingResolveAbility",
                                                               "Lore Keeper",
-                                                              "At 1st level, you can touch a creature to learn about its abilities and weaknesses. With a successful touch attack, you gain information as if your result on the appropriate Knowledge skill check were equal to 15 + your warpriest level + your Wisdom modifier.",
+                                                              "At 1st level, you can touch a creature to learn about its abilities and weaknesses. With a successful touch attack, you gain information as if your result on the appropriate Knowledge skill check were equal to 15 + your warpriest level + your Charisma modifier.",
                                                               "",
                                                               aid.Icon,
                                                               AbilityType.Supernatural,
@@ -2674,7 +2675,7 @@ namespace CallOfTheWild
                                                               Helpers.CreateRunActions(lore_action),
                                                               Helpers.CreateCalculateSharedValue(Helpers.CreateContextDiceValue(DiceType.One, Helpers.CreateContextValue(AbilityRankType.StatBonus),
                                                                                                  Helpers.CreateContextValue(AbilityRankType.Default)), AbilitySharedValue.StatBonus),
-                                                              Helpers.CreateContextRankConfig(ContextRankBaseValueType.StatBonus, stat: StatType.Wisdom, type: AbilityRankType.StatBonus),
+                                                              Helpers.CreateContextRankConfig(ContextRankBaseValueType.StatBonus, stat: StatType.Charisma, type: AbilityRankType.StatBonus),
                                                               Helpers.CreateContextRankConfig(ContextRankBaseValueType.SummClassLevelWithArchetype, classes: getBlessingUsersArray(),
                                                                                               archetype: Archetypes.DivineTracker.archetype),
                                                               Helpers.Create<NewMechanics.MonsterLore.AbilityTargetCanBeInspected>(),
@@ -3014,7 +3015,7 @@ namespace CallOfTheWild
         static void createMagicBlessing()
         {
             var minor_ability = library.CopyAndAdd<BlueprintAbility>("8e40da3ef31245d468de08394504920b", "WarpriestMagicBlessingMinorAbility", "");
-            minor_ability.SetDescription("At 1st level, you can cause your melee weapon to fly from your grasp and strike an opponent, then instantly return to you. You can make a single attack using a melee weapon at a range of 30 feet. This attack is treated as a ranged attack with a thrown weapon, except that you add your Wisdom modifier to the attack roll instead of your Dexterity modifier (you still add your Strength modifier to the damage roll as normal). This ability cannot be used to perform a combat maneuver.");
+            minor_ability.SetDescription("At 1st level, you can cause your melee weapon to fly from your grasp and strike an opponent, then instantly return to you. You can make a single attack using a melee weapon at a range of 30 feet. This attack is treated as a ranged attack with a thrown weapon, except that you add your Charisma modifier to the attack roll instead of your Dexterity modifier (you still add your Strength modifier to the damage roll as normal). This ability cannot be used to perform a combat maneuver.");
 
             minor_ability.RemoveComponents<AbilityResourceLogic>();
             addBlessingResourceLogic("Magic", minor_ability, quicken: true);
@@ -3185,7 +3186,7 @@ namespace CallOfTheWild
                                                 entangle_buff.Icon,
                                                 null,
                                                 Common.createAddInitiatorAttackWithWeaponTrigger(on_hit_action, check_weapon_range_type: true, only_first_hit: true),
-                                                Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Wisdom)
+                                                Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Charisma)
                                                 );
 
             var minor_activatable_ability = Helpers.CreateActivatableAbility("WarpriestPlantMinorBlessingActivatable",
@@ -3335,7 +3336,7 @@ namespace CallOfTheWild
             minor_ability_touch.RemoveComponents<AbilityResourceLogic>();
             minor_ability_touch.RemoveComponents<SpellComponent>();
             minor_ability_touch.ReplaceComponent<AbilityEffectRunAction>(c => c.Actions = Helpers.CreateActionList(effect));
-            minor_ability_touch.SetDescription("At 1st level, you can fill a living creature with lethargy by hitting it with a melee touch attack, causing it to become staggered for 1 round. If the target is already staggered, it falls asleep for 1 round instead. An undead creature that’s touched is staggered for a number of rounds equal to your Wisdom modifier (minimum 1).");
+            minor_ability_touch.SetDescription("At 1st level, you can fill a living creature with lethargy by hitting it with a melee touch attack, causing it to become staggered for 1 round. If the target is already staggered, it falls asleep for 1 round instead. An undead creature that’s touched is staggered for a number of rounds equal to your Charisma modifier (minimum 1).");
             minor_ability_touch.SpellResistance = false;
             var minor_ability = Helpers.CreateAbility("WarpriestReposeBlessingMinorAbility",
                                                       minor_ability_touch.Name,
@@ -3549,7 +3550,7 @@ namespace CallOfTheWild
                                                       Helpers.CreateRunActions(effect),
                                                       flare.GetComponent<AbilitySpawnFx>(),
                                                       Helpers.CreateSpellDescriptor(SpellDescriptor.Blindness | SpellDescriptor.SightBased),
-                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Wisdom)
+                                                      Common.createContextCalculateAbilityParamsBasedOnClassesWithArchetypes(getBlessingUsersArray(), getBlessingUsersArchetypesArray(), StatType.Charisma)
                                                       );
 
             addBlessingResourceLogic("Sun", minor_ability);
@@ -4101,7 +4102,7 @@ namespace CallOfTheWild
             var fist2d10 = library.Get<BlueprintFeature>("df38e56fa8b3f0f469d55f9aa26b3f5c");
 
             var ac_bonus = library.CopyAndAdd<BlueprintFeature>("e241bdfd6333b9843a7bfd674d607ac4", "ACBonusSacredFistACBonusFeature", "");
-            ac_bonus.SetDescription("When unarmored and unencumbered, the sacred fist adds his Wisdom bonus (if any) to his AC and CMD. In addition, a sacred fist gains a +1 bonus to AC and CMD at 4th level. This bonus increases by 1 for every four sacred fist levels thereafter, up to a maximum of +5 at 20th level.");
+            ac_bonus.SetDescription("When unarmored and unencumbered, the sacred fist adds his Charisma bonus (if any) to his AC and CMD. In addition, a sacred fist gains a +1 bonus to AC and CMD at 4th level. This bonus increases by 1 for every four sacred fist levels thereafter, up to a maximum of +5 at 20th level.");
             foreach (var c in ac_bonus.GetComponents<ContextRankConfig>().ToArray())
             {
                 if (c.IsBasedOnClassLevel)
@@ -4300,7 +4301,7 @@ namespace CallOfTheWild
         {
             var ki_resource = Helpers.CreateAbilityResource("WarpriestSacredFistKiResource", "", "", "", null);
             ki_resource.SetIncreasedByLevelStartPlusDivStep(1, 5, 0, 2, 1, 0, 0.0f, getWarpriestArray());
-            ki_resource.SetIncreasedByStat(1, StatType.Wisdom);
+            ki_resource.SetIncreasedByStat(1, StatType.Charisma);
 
             var extra_attack_ability = library.CopyAndAdd<BlueprintAbility>("7f6ea312f5dad364fa4a896d7db39fdd", "WarpriestSacredFistKiExtraAttackAbility", "");
             extra_attack_ability.SetDescription("By spending 1 point from his ki pool as a swift action, a sacred fist can make one additional unarmed strike at his highest attack bonus when making a flurry of blows attack.This bonus attack stacks with all bonus attacks gained from flurry of blows, as well as those from haste and similar effects.");
@@ -4342,7 +4343,7 @@ namespace CallOfTheWild
 
             sacred_fist_ki_pool = Helpers.CreateFeature("WarpriestSacredFistKiPowerFeature",
                                                         "Ki Pool",
-                                                        "At 7th level, a sacred fist gains a pool of ki points, supernatural energy he can use to accomplish amazing feats. The number of points in a sacred's ki pool is equal to 1/2 his sacred fist level + his Wisdom modifier - 3. As long as he has at least 1 point in his ki pool, he can make a ki strike.\n"
+                                                        "At 7th level, a sacred fist gains a pool of ki points, supernatural energy he can use to accomplish amazing feats. The number of points in a sacred's ki pool is equal to 1/2 his sacred fist level + his Charisma modifier - 3. As long as he has at least 1 point in his ki pool, he can make a ki strike.\n"
                                                         + "At 7th level, ki strike allows his unarmed attacks to be treated as magic weapons for the purpose of overcoming damage reduction.\n"
                                                         + "At 10th level, his unarmed attacks are also treated as cold iron and silver for the purpose of overcoming damage reduction.\n"
                                                         + "At 13th level, his unarmed attacks are also treated as lawful weapons for the purpose of overcoming damage reduction.\n"
