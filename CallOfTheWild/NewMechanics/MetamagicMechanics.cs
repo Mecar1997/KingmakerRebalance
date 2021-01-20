@@ -83,10 +83,7 @@ namespace CallOfTheWild
                 {
                     return false;
                 }
-                if (data?.Spellbook == null)
-                {
-                    return false;
-                }
+
 
                 if (spellbook != null && spellbook != data.Spellbook.Blueprint)
                 {
