@@ -311,7 +311,78 @@ namespace CallOfTheWild.HoldingItemsMechanics
         }
     }
 
+    public class UseSpellCombatWithOffhand : CanUseSpellCombatBase
+    {
+        public BlueprintWeaponEnchantment required_enchant;
+        public override bool canBeUsedOn(HandSlot primary_hand_slot, HandSlot secondary_hand_slot, bool use_two_handed)
+        {
+            if (use_two_handed)
+            {
+                return false;
+            }
 
+            var weapon = primary_hand_slot?.MaybeWeapon;
+            var weapon2 = secondary_hand_slot?.MaybeWeapon;
+            if (weapon == null)
+            {
+                return false;
+            }
+
+            if (weapon.Blueprint.Double)
+            {
+                return true;
+            }
+
+            if (weapon2 == null)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override void OnFactActivate()
+        {
+            this.Owner.Ensure<UnitPartCanUseSpellCombat>().addBuff(this.Fact);
+        }
+
+
+        public override void OnFactDeactivate()
+        {
+            this.Owner.Ensure<UnitPartCanUseSpellCombat>().removeBuff(this.Fact);
+        }
+    }
+
+    public class UseSpellCombatWith2hWeapon : CanUseSpellCombatBase
+    {
+
+        public override bool canBeUsedOn(HandSlot primary_hand_slot, HandSlot secondary_hand_slot, bool use_two_handed)
+        {
+            var weapon = primary_hand_slot?.MaybeWeapon;
+            if (weapon == null)
+            {
+                return false;
+            }
+
+            if (secondary_hand_slot != null && !Helpers.hasFreeHand(secondary_hand_slot))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override void OnFactActivate()
+        {
+            this.Owner.Ensure<UnitPartCanUseSpellCombat>().addBuff(this.Fact);
+        }
+
+
+        public override void OnFactDeactivate()
+        {
+            this.Owner.Ensure<UnitPartCanUseSpellCombat>().removeBuff(this.Fact);
+        }
+    }
 
 
     [AllowMultipleComponents]

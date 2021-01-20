@@ -57,7 +57,8 @@ namespace CallOfTheWild.Archetypes
         static public BlueprintFeatureSelection familiar;
         static public BlueprintFeature symbiosis;
         static public BlueprintFeature improved_symbiosis;
-
+        static BlueprintFeatureSelection magus_arcana = library.Get<BlueprintFeatureSelection>("e9dc4dfc73eaaf94aae27e0ed6cc9ada");
+        static BlueprintFeatureSelection eldritch_magus_arcana = library.Get<BlueprintFeatureSelection>("d4b54d9db4932454ab2899f931c2042c");
         static LibraryScriptableObject library => Main.library;
 
         static public void create()
@@ -93,43 +94,47 @@ namespace CallOfTheWild.Archetypes
                                                             "");
             woodland_stride.SetDescription("At 7th level, a nature-bonded magus can move through any sort of undergrowth (such as natural briars, overgrown areas, thorns, and similar terrain) at his normal speed and without taking damage or suffering any other impairment.");
 
-            archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, arcane_pool_feature),
-                                                          Helpers.LevelEntry(4, spell_recall),
-                                                          Helpers.LevelEntry(5, arcane_weapon5),
-                                                          Helpers.LevelEntry(9, arcane_weapon9),
-                                                          Helpers.LevelEntry(11, improved_spell_recall),
-                                                          Helpers.LevelEntry(13, arcane_weapon13),
-                                                          Helpers.LevelEntry(17, arcane_weapon17),
+            archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1),
+                                                          Helpers.LevelEntry(4),
+                                                          Helpers.LevelEntry(5),
+                                                          Helpers.LevelEntry(9),
+                                                          Helpers.LevelEntry(11),
+                                                          Helpers.LevelEntry(13),
+                                                          Helpers.LevelEntry(17),
                                                        };
 
-            archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, familiar, natural_magic[0]),
-                                                          Helpers.LevelEntry(4, symbiosis, natural_magic[1]),
-                                                          Helpers.LevelEntry(7, symbiosis, woodland_stride, natural_magic[2]),
+            archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, natural_magic[0]),
+                                                          Helpers.LevelEntry(4, natural_magic[1]),
+                                                          Helpers.LevelEntry(7, natural_magic[2]),
                                                           Helpers.LevelEntry(10, natural_magic[3]),
-                                                          Helpers.LevelEntry(11, symbiosis, improved_symbiosis),
+                                                          Helpers.LevelEntry(11),
                                                           Helpers.LevelEntry(13, natural_magic[4]),
-                                                          Helpers.LevelEntry(15, symbiosis),
+                                                          Helpers.LevelEntry(15),
                                                           Helpers.LevelEntry(16, natural_magic[5]),
-                                                          Helpers.LevelEntry(19, symbiosis),
+                                                          Helpers.LevelEntry(19),
                                                        };
             magus_class.Archetypes = magus_class.Archetypes.AddToArray(archetype);
 
             magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(natural_magic));
-            magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(symbiosis));
-            magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(familiar, woodland_stride, improved_symbiosis));
+            //  magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(symbiosis, improved_symbiosis));
+            magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(familiar, woodland_stride));
+
+
+            //magus_class.Progression.LevelEntries[2].Features.Add(symbiosis);
+            //magus_class.Progression.LevelEntries[3].Features.Add(improved_symbiosis);
+
+
+
+            magus_arcana.AllFeatures = magus_arcana.AllFeatures.AddToArray(symbiosis);
+            eldritch_magus_arcana.AllFeatures = eldritch_magus_arcana.AllFeatures.AddToArray(symbiosis);
+
+            magus_arcana.AllFeatures = magus_arcana.AllFeatures.AddToArray(improved_symbiosis);
+            eldritch_magus_arcana.AllFeatures = eldritch_magus_arcana.AllFeatures.AddToArray(improved_symbiosis);
 
 
             var restricted_arcanas_ids = new string[]
             {
-                "2eacbdbf1c4f4134aa7fea99ab8763dc",
-                "a2e0691dcfda2374e84d8bbf480e06a0",
-                "4be0bb10e110a35419e406da767bd1e3",
-                "cb6916027e3c25e4185de068249254dc",
-                "7a73bf165e8eda6478b4419f857d1ab5",
-                "8896f327c59569c4eaf129bf35b96c1f",
-                "85c05a8120e3e9f4e8ae01625038809a",
-                "a3909a7293533fe49a2d7cfe051f17e4",
-                "42f96fc8d6c80784194262e51b0a1d25", //extra arcane pool
+
             };
 
             foreach (var id in restricted_arcanas_ids)
@@ -156,35 +161,25 @@ namespace CallOfTheWild.Archetypes
         static void createSymbiosis()
         {
             symbiosis = Helpers.CreateFeature("SymbiosisNatureBondedMagusFeature",
-                                              "Symbiosis",
-                                                "A 4th level, a nature-bonded magus gains +1 bonus to its natural AC. This bonus increases by 1 at 7th level and every 4 levels thereafter.",
+                                              "Two-Handed Spell Combat",
+                                                "After selecting this arcana, a magus is able to use Spell Combat ability with two-handed weapons",
                                                 "",
-                                                Helpers.GetIcon("5b77d7cc65b8ab74688e74a37fc2f553"), //barkskin
+                                                library.Get<BlueprintActivatableAbility>("7902941ef70a0dc44bcfc174d6193386").Icon, //grace
                                                 FeatureGroup.None,
-                                                Helpers.CreateAddContextStatBonus(StatType.AC, ModifierDescriptor.NaturalArmor)
+                                                Helpers.Create<HoldingItemsMechanics.UseSpellCombatWith2hWeapon>()
                                                 );
-            symbiosis.Ranks = 5;
-            symbiosis.ReapplyOnLevelUp = true;
-            symbiosis.AddComponent(Helpers.CreateContextRankConfig(ContextRankBaseValueType.FeatureRank, feature: symbiosis));
         }
-
 
         static void createImprovedSymbiosis()
         {
             improved_symbiosis = Helpers.CreateFeature("ImprovedSymbiosisNatureBondedMagusFeature",
-                                                    "Improved Symbiosis",
-                                                    "At 11th level, a nature-bonded magus gains a +4 enhancement bonus to his Strength and Constitution. This bonus increases to +6 at level 15 and to +8 at level 19.",
-                                                    "",
-                                                    Helpers.GetIcon("4c3d08935262b6544ae97599b3a9556d"), //bulls strength
-                                                    FeatureGroup.None,
-                                                    Helpers.CreateAddContextStatBonus(StatType.Strength, ModifierDescriptor.Enhancement),
-                                                    Helpers.CreateAddContextStatBonus(StatType.Constitution, ModifierDescriptor.Enhancement),
-                                                    Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, classes: new BlueprintCharacterClass[] { archetype.GetParentClass() },
-                                                                                    progression: ContextRankProgression.Custom,
-                                                                                    customProgression: new (int, int)[] { (14, 4), (18, 6), (20, 8) }
-                                                                                    )
-                                                    );
-            improved_symbiosis.ReapplyOnLevelUp = true;
+                                              "Improved Spell Combat",
+                                                "After selecting this arcana, a magus is able to use Spell Combat ability with two weapons.",
+                                                "",
+                                                Helpers.GetIcon("464a7193519429f48b4d190acb753cf0"), //grace
+                                                FeatureGroup.None,
+                                                Helpers.Create<HoldingItemsMechanics.UseSpellCombatWithOffhand>()
+                                                );
         }
 
 
