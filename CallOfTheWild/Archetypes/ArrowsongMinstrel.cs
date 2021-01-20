@@ -91,22 +91,22 @@ namespace CallOfTheWild.Archetypes
             library.AddAsset(archetype, "");
             archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, library.Get<BlueprintFeature>("fa3d3b2211a51994785d85e753f612d3")), //bard proficiencies
                                                           Helpers.LevelEntry(2, bard_class.Progression.LevelEntries[1].Features), //well versed and versatile
-                                                          Helpers.LevelEntry(3, bard_class.Progression.LevelEntries[2].Features), //inspire competence
+                                                          Helpers.LevelEntry(3), //inspire competence
                                                           Helpers.LevelEntry(6, library.Get<BlueprintFeature>("ddaec3a5845bc7d4191792529b687d65")), //fascinate
-                                                          Helpers.LevelEntry(7, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
+                                                          Helpers.LevelEntry(7), //inspire competence
                                                           Helpers.LevelEntry(8, library.Get<BlueprintFeature>("1d48ab2bded57a74dad8af3da07d313a")), //dirge of doom
-                                                          Helpers.LevelEntry(11, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
+                                                          Helpers.LevelEntry(11), //inspire competence
                                                           Helpers.LevelEntry(12, library.Get<BlueprintFeature>("546698146e02d1e4ea00581a3ea7fe58")), //soothing performance
                                                           Helpers.LevelEntry(14, library.Get<BlueprintFeature>("cfd8940869a304f4aa9077415f93febe")), //frightening tune
-                                                          Helpers.LevelEntry(15, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
-                                                          Helpers.LevelEntry(19, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
+                                                          Helpers.LevelEntry(15), //inspire competence
+                                                          Helpers.LevelEntry(19), //inspire competence
                                                        };
             archetype.ReplaceSpellbook = spellbook;
             archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, weapon_proficiency),
                                                        Helpers.LevelEntry(1, arcane_achery_selection),
                                                        Helpers.LevelEntry(2, precise_minstrel),
-                                                       Helpers.LevelEntry(6, arrowsong_strike),
-                                                       Helpers.LevelEntry(18, ray_spell_combat)};
+                                                       Helpers.LevelEntry(4, arrowsong_strike),
+                                                       Helpers.LevelEntry(8, ray_spell_combat)};
 
             bard_class.Progression.UIDeterminatorsGroup = bard_class.Progression.UIDeterminatorsGroup.AddToArray(weapon_proficiency);
             bard_class.Progression.UIGroups = bard_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(arcane_achery_selection, precise_minstrel, arrowsong_strike, ray_spell_combat));
@@ -183,7 +183,7 @@ namespace CallOfTheWild.Archetypes
                                                   "An Arrowsong minstrel’s skill at ranged martial arts allows her to learn to cast a number of powerful, offensive spells that would otherwise be unavailable to her.\n"
                                                   + "Arrowsong Minstrel adds following spells to her spell list: acid arrow, flame arrow, hurricane bow, greater magic weapon, magic weapon, protection from arrows, snowball, true strike, and sorcerer/wizard spells of the evocation school. An Arrowsong minstrel must still select these spells as spells known before she can cast them.\n"
                                                   + "In addition, for the purpose of meeting the requirements of combat feats and prestige classes, an Arrowsong minstrel treats her bard level as her base attack bonus (in addition to base attack bonuses gained from other classes and Hit Dice).\n"
-                                                  + "An Arrowsong minstrel casts one fewer spell of each level than normal. If this reduces the number to 0, she can cast spells of that level only if her Charisma score allows bonus spells of that level.",
+                                                  + "",
                                                   "",
                                                   icon,
                                                   FeatureGroup.None,
@@ -272,7 +272,7 @@ namespace CallOfTheWild.Archetypes
             spellbook.name = "ArrowsongMinstrelSpellbook";
             library.AddAsset(spellbook, "");
             spellbook.Name = Helpers.CreateString("ArrowsongMinstrelSpellbook.Name", "Arrowsong Minstrel");
-            spellbook.SpellsPerDay = Common.increaseNumSpellsCast("ArrowsongMinstrellSpellPerDay", "", bard_class.Spellbook.SpellsPerDay, -1);
+            spellbook.SpellsPerDay = bard_class.Spellbook.SpellsPerDay;
             spellbook.SpellsKnown = bard_class.Spellbook.SpellsKnown;
             spellbook.Spontaneous = true;
             spellbook.IsArcane = true;
