@@ -230,7 +230,7 @@ namespace CallOfTheWild
             warpriest_spellbook.SpellsKnown = bard_class.Spellbook.SpellsKnown;
             warpriest_spellbook.Spontaneous = true;
             warpriest_spellbook.IsArcane = false;
-            warpriest_spellbook.AllSpellsKnown = true;
+            warpriest_spellbook.AllSpellsKnown = false;
             warpriest_spellbook.CanCopyScrolls = false;
             warpriest_spellbook.CastingAttribute = StatType.Charisma;
             warpriest_spellbook.CharacterClass = warpriest_class;
@@ -4556,12 +4556,12 @@ namespace CallOfTheWild
             library.AddAsset(champion_of_the_faith_archetype, "");
 
 
-            champion_of_the_faith_archetype.RemoveFeatures = new LevelEntry[] {Helpers.LevelEntry(3, fighter_feat),
-                                                                    Helpers.LevelEntry(4),
-                                                                    Helpers.LevelEntry(8),
-                                                                    Helpers.LevelEntry(12),
-                                                                    Helpers.LevelEntry(16),
-                                                                    Helpers.LevelEntry(20)
+            champion_of_the_faith_archetype.RemoveFeatures = new LevelEntry[] {Helpers.LevelEntry(3),
+                                                                    Helpers.LevelEntry(4, warpriest_sacred_weapon_enhancement),
+                                                                    Helpers.LevelEntry(8, warpriest_sacred_weapon_enhancement2),
+                                                                    Helpers.LevelEntry(12, warpriest_sacred_weapon_enhancement3),
+                                                                    Helpers.LevelEntry(16, warpriest_sacred_weapon_enhancement4),
+                                                                    Helpers.LevelEntry(20, warpriest_sacred_weapon_enhancement5)
                                                                     };
 
             champion_of_the_faith_archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, chosen_alignment) };

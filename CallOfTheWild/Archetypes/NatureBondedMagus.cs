@@ -88,22 +88,24 @@ namespace CallOfTheWild.Archetypes
             var arcane_weapon9 = library.Get<BlueprintFeature>("70be888059f99a245a79d6d61b90edc5");
             var arcane_weapon13 = library.Get<BlueprintFeature>("1804187264121cd439d70a96234d4ddb");
             var arcane_weapon17 = library.Get<BlueprintFeature>("3cbe3e308342b3247ba2f4fbaf5e6307");
+            
 
             var woodland_stride = library.CopyAndAdd<BlueprintFeature>("11f4072ea766a5840a46e6660894527d",
                                                             "NatureBondedMagusWooldlandStride",
                                                             "");
             woodland_stride.SetDescription("At 7th level, a nature-bonded magus can move through any sort of undergrowth (such as natural briars, overgrown areas, thorns, and similar terrain) at his normal speed and without taking damage or suffering any other impairment.");
 
-            archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1),
-                                                          Helpers.LevelEntry(4),
-                                                          Helpers.LevelEntry(5),
-                                                          Helpers.LevelEntry(9),
-                                                          Helpers.LevelEntry(11),
-                                                          Helpers.LevelEntry(13),
-                                                          Helpers.LevelEntry(17),
+            archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, arcane_pool_feature),
+                                                          Helpers.LevelEntry(3, magus_arcana),
+                                                          Helpers.LevelEntry(4, spell_recall),
+                                                          Helpers.LevelEntry(5, arcane_weapon5),
+                                                          Helpers.LevelEntry(9, arcane_weapon9),
+                                                          Helpers.LevelEntry(11, improved_spell_recall),
+                                                          Helpers.LevelEntry(13, arcane_weapon13),
+                                                          Helpers.LevelEntry(17, arcane_weapon17),
                                                        };
 
-            archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, natural_magic[0]),
+            archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, natural_magic[0], magus_arcana),
                                                           Helpers.LevelEntry(4, natural_magic[1]),
                                                           Helpers.LevelEntry(7, natural_magic[2]),
                                                           Helpers.LevelEntry(10, natural_magic[3]),
@@ -134,7 +136,15 @@ namespace CallOfTheWild.Archetypes
 
             var restricted_arcanas_ids = new string[]
             {
-
+                "2eacbdbf1c4f4134aa7fea99ab8763dc",
+                "a2e0691dcfda2374e84d8bbf480e06a0",
+                "4be0bb10e110a35419e406da767bd1e3",
+                "cb6916027e3c25e4185de068249254dc",
+                "7a73bf165e8eda6478b4419f857d1ab5",
+                "8896f327c59569c4eaf129bf35b96c1f",
+                "85c05a8120e3e9f4e8ae01625038809a",
+                "a3909a7293533fe49a2d7cfe051f17e4",
+                "42f96fc8d6c80784194262e51b0a1d25", //extra arcane pool
             };
 
             foreach (var id in restricted_arcanas_ids)
@@ -174,7 +184,7 @@ namespace CallOfTheWild.Archetypes
         {
             improved_symbiosis = Helpers.CreateFeature("ImprovedSymbiosisNatureBondedMagusFeature",
                                               "Improved Spell Combat",
-                                                "After selecting this arcana, a magus is able to use Spell Combat ability with two weapons.",
+                                                "After selecting this arcana, a magus is able to use Spell Combat ability even while his offhand is occupied.",
                                                 "",
                                                 Helpers.GetIcon("464a7193519429f48b4d190acb753cf0"), //grace
                                                 FeatureGroup.None,
@@ -186,9 +196,9 @@ namespace CallOfTheWild.Archetypes
         static void createNaturalMagic()
         {
             var magus_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
-            var drudi_spell_list = library.Get<BlueprintSpellList>("bad8638d40639d04fa2f80a1cac67d6b");
+            var druid_spell_list = library.Get<BlueprintSpellList>("bad8638d40639d04fa2f80a1cac67d6b");
             var magus_spell_list = library.Get<BlueprintSpellList>("4d72e1e7bd6bc4f4caaea7aa43a14639");
-            var combined_spell_list = Common.combineSpellLists("NatureBondedMagusNaturalMagicSpellList", drudi_spell_list);
+            var combined_spell_list = Common.combineSpellLists("NatureBondedMagusNaturalMagicSpellList", druid_spell_list);
             Common.excludeSpellsFromList(combined_spell_list, magus_spell_list);
 
             for (int i = 1; i <= 6; i++)

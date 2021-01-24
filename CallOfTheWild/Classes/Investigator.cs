@@ -112,7 +112,6 @@ namespace CallOfTheWild
         static public BlueprintArchetype psychic_detective;
         static public BlueprintFeature psychic_spellcasting;
         static public BlueprintSpellbook psychic_detective_spellbook;
-        static public BlueprintFeature psychic_meddler;
         static public BlueprintFeatureSelection phrenic_dabbler;
         static public BlueprintFeature extra_phrenic_pool;
         static public BlueprintFeatureSelection extra_phrenic_amplification;
@@ -467,16 +466,12 @@ namespace CallOfTheWild
             createPhrenicDabbler();
             createPsychicDiscoveries();
 
-            psychic_meddler = Helpers.CreateFeature("PsychicMeddlerFeature",
-                                                        "Psychic Meddler",
-                                                        "At 2nd level, a psychic detective receives a +1 bonus on saves against mind-affecting spells and spell-like abilities. This bonus increases by 1 at 5th level and every 3 levels thereafter, to a maximum of +6 at 17th level.",
-                                                        "",
-                                                        Helpers.GetIcon("eabf94e4edc6e714cabd96aa69f8b207"), //mind fog
-                                                        FeatureGroup.None,
-                                                        Common.createContextSavingThrowBonusAgainstDescriptor(Helpers.CreateContextValue(AbilityRankType.Default), ModifierDescriptor.UntypedStackable, SpellDescriptor.MindAffecting),
-                                                        Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, classes: getInvestigatorArray(), progression: ContextRankProgression.StartPlusDivStep,
-                                                                                        startLevel: 2, stepLevel: 3)
-                                                        );
+
+
+
+
+
+
 
             psychic_detective.RemoveFeatures = new LevelEntry[] {
                                                                    Helpers.LevelEntry(2, poison_resistance),
@@ -484,13 +479,13 @@ namespace CallOfTheWild
                                                                    Helpers.LevelEntry(11, poison_immunity),
                                                                 };
             psychic_detective.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, detect_magic, psychic_spellcasting),
-                                                               Helpers.LevelEntry(2, psychic_meddler),
+                                                               Helpers.LevelEntry(2),
                                                                Helpers.LevelEntry(3, phrenic_dabbler)
                                                              };
 
             psychic_detective.ReplaceSpellbook = psychic_detective_spellbook;
             investigator_class.Progression.UIDeterminatorsGroup = investigator_class.Progression.UIDeterminatorsGroup.AddToArray(detect_magic, psychic_spellcasting);
-            investigator_class.Progression.UIGroups = investigator_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(psychic_meddler, phrenic_dabbler));
+            investigator_class.Progression.UIGroups = investigator_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(phrenic_dabbler));
 
             psychic_detective.ReplaceClassSkills = true;
             psychic_detective.ClassSkills = new StatType[] {StatType.SkillStealth, StatType.SkillThievery,

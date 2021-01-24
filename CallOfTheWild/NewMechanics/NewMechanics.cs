@@ -4164,6 +4164,41 @@ namespace CallOfTheWild
         }
 
 
+        [ComponentName("Replace ray/touch attack with //half// your Charisma, Wisdom or Intellect modifiers, if they are higher than your martial stats")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class AttackStatReplacementForCasters : RuleInitiatorLogicComponent<RuleCalculateAttackBonusWithoutTarget>
+        {
+            public WeaponCategory[] categories;
+
+            public override void OnEventAboutToTrigger(RuleCalculateAttackBonusWithoutTarget evt)
+            {
+                var chosenStat = StatType.Charisma;
+
+                if (Owner.Stats.GetStat(StatType.Wisdom) >= Owner.Stats.GetStat(chosenStat))
+                {
+                    chosenStat = StatType.Wisdom;
+                }
+                if (Owner.Stats.GetStat(StatType.Intelligence) >= Owner.Stats.GetStat(chosenStat))
+                {
+                    chosenStat = StatType.Intelligence;
+                }
+
+                ModifiableValueAttributeStat stat1 = this.Owner.Stats.GetStat(evt.AttackBonusStat) as ModifiableValueAttributeStat;
+                ModifiableValueAttributeStat stat2 = this.Owner.Stats.GetStat(chosenStat) as ModifiableValueAttributeStat;
+                bool flag = stat2 != null && stat1 != null && (stat2.Bonus) >= stat1.Bonus;
+                if (flag && (categories.Contains(evt.Weapon.Blueprint.Category) || categories.Empty()))
+                {
+                    evt.AttackBonusStat = chosenStat;
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleCalculateAttackBonusWithoutTarget evt)
+            {
+            }
+        }
+
+
+
         [AllowMultipleComponents]
         [AllowedOn(typeof(BlueprintUnitFact))]
         public class ContextACBonusAgainstFactOwner : OwnedGameLogicComponent<UnitDescriptor>, ITargetRulebookHandler<RuleAttackRoll>, IRulebookHandler<RuleAttackRoll>, ITargetRulebookSubscriber

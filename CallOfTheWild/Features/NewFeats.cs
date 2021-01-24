@@ -2449,8 +2449,8 @@ namespace CallOfTheWild
                                                                                                                                 c.feature = deity_favored_weapon;
                                                                                                                                 c.ReplacementStat = StatType.Wisdom;
                                                                                                                             }
-                                                                                                                            ),
-                                                Helpers.PrerequisiteFeature(ChannelEnergyEngine.channel_smite)
+                                                                                                                            )
+                                                
                                                 );
             library.AddFeats(guided_hand);
         }

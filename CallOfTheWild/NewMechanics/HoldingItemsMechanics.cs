@@ -313,7 +313,6 @@ namespace CallOfTheWild.HoldingItemsMechanics
 
     public class UseSpellCombatWithOffhand : CanUseSpellCombatBase
     {
-        public BlueprintWeaponEnchantment required_enchant;
         public override bool canBeUsedOn(HandSlot primary_hand_slot, HandSlot secondary_hand_slot, bool use_two_handed)
         {
             if (use_two_handed)
@@ -322,7 +321,7 @@ namespace CallOfTheWild.HoldingItemsMechanics
             }
 
             var weapon = primary_hand_slot?.MaybeWeapon;
-            var weapon2 = secondary_hand_slot?.MaybeWeapon;
+
             if (weapon == null)
             {
                 return false;
@@ -333,10 +332,11 @@ namespace CallOfTheWild.HoldingItemsMechanics
                 return true;
             }
 
-            if (weapon2 == null)
+            if (secondary_hand_slot != null && !Helpers.hasFreeHand(secondary_hand_slot))
             {
-                return false;
+                return true;
             }
+
 
             return true;
         }

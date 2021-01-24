@@ -4,6 +4,7 @@ using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.EntitySystem.Stats;
+using Kingmaker.Enums;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
@@ -20,18 +21,35 @@ namespace CallOfTheWild
     {
         static LibraryScriptableObject library => Main.library;
         static BlueprintCharacterClass mystic_theurge = library.Get<BlueprintCharacterClass>("0920ea7e4fd7a404282e3d8b0ac41838");
+        static BlueprintCharacterClass magus_class = library.Get<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
         static BlueprintProgression mystic_theurge_progression = library.Get<BlueprintProgression>("08c1075ef2786ef4fae11e82698a16e0");
+        static BlueprintProgression magus_progression = library.Get<BlueprintProgression>("1b912721a7e075d4f9cfe8dafa39414c");
+        static BlueprintProgression sorcerer_progression = library.Get<BlueprintProgression>("997665565ca80a649aedd72455c4df1f");
+        static BlueprintProgression wizard_progression = library.Get<BlueprintProgression>("02f3049806dbf62459259ea8cae8f715");
+        static BlueprintProgression cleric_progression = library.Get<BlueprintProgression>("b2cd67193d1199f41bc6ecec3a2f2c87");
+        static BlueprintProgression inquisitor_progression = library.Get<BlueprintProgression>("4e945c2fe5e252f4ea61eee7fb560017");
+        static BlueprintProgression druid_progression = library.Get<BlueprintProgression>("01006f2ac8866764fb7af135e73be81c");
+        static BlueprintProgression ranger_progression = library.Get<BlueprintProgression>("97261d609529d834eba4fd4da1bc44dc");
+        static BlueprintProgression paladin_progression = library.Get<BlueprintProgression>("fd325cbba872e5f40b618970678db002");
+        static BlueprintProgression bard_progression = library.Get<BlueprintProgression>("8127f5ff40f5b484b8be98609358b9d2");
+        static BlueprintArchetype eldritch_scoundrel = library.Get<BlueprintArchetype>("57f93dd8423c97c49989501281296c4a");
+        
         static BlueprintFeature spell_synthesis;
         static BlueprintFeature extra_spell_synthesis;
         static BlueprintFeature lesser_spell_synthesis;
         static BlueprintFeature extra_lesser_spell_synthesis;
         static BlueprintFeature theurgy;
+        static public BlueprintFeature spell_specialization;
+
 
         public static void load()
         {
             createSpellSynthesis();
             createLesserSpellSynthesis();
             createTheurgy();
+            changeMagusProgression();
+            changeDivineGuardianSpellbook();
+            addSpellSpecialization();
         }
 
 
@@ -399,6 +417,84 @@ namespace CallOfTheWild
             extra_spell_synthesis.Ranks = 10;
 
             library.AddFeats(extra_spell_synthesis);
+        }
+
+        static void changeMagusProgression()
+        {
+            var magus_spellstrike = library.Get<BlueprintFeature>("be50f4e97fff8a24ba92561f1694a945");
+            var magus_arcana = library.Get<BlueprintFeature>("e9dc4dfc73eaaf94aae27e0ed6cc9ada");
+            var magus_spellcombat = library.Get<BlueprintFeature>("2464ba53317c7fc4d88f383fac2b45f9");
+            var magus_counterstrike = library.Get<BlueprintFeature>("cd96b7275c206da4899c69ae127ffda6");
+
+
+            magus_progression.LevelEntries[0].Features.Add(magus_spellstrike);
+            magus_progression.LevelEntries[1].Features.Remove(magus_spellstrike);  
+
+
+            // Eldritch Archer
+            var eldritch_archer = library.Get<BlueprintArchetype>("44388c01eb4a29d4d90a25cc0574320d");
+            var eldritch_archer_spellstrike = library.Get<BlueprintFeature>("6aa84ca8918ac604685a3d39a13faecc");
+            var eldritch_archer_spellcombat = library.Get<BlueprintFeature>("8b68a5b8223beed40b137885116c408f");
+
+            eldritch_archer.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, magus_spellstrike, magus_spellcombat),
+                                                          Helpers.LevelEntry(3, magus_arcana),
+                                                          Helpers.LevelEntry(16, magus_counterstrike),
+                                                       };
+
+            eldritch_archer.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, eldritch_archer_spellcombat, eldritch_archer_spellstrike, magus_arcana),
+
+                                                       };
+        }
+
+        static void changeDivineGuardianSpellbook()
+        {
+            var divineguardian = library.Get<BlueprintArchetype>("5693945afac189a469ef970eac8f71d9");
+            var layOnHandsFeature = library.Get<BlueprintFeature>("858a3689c285c844d9e6ce278e686491");
+            var auraOfCourageFeature = library.Get<BlueprintFeature>("e45ab30f49215054e83b4ea12165409f");
+            divineguardian.RemoveSpellbook = false;
+            divineguardian.ChangeCasterType = false;
+
+            divineguardian.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(2, layOnHandsFeature),
+                                                          Helpers.LevelEntry(3, auraOfCourageFeature),
+                                                       };
+        }
+
+        static void addSpellSpecialization()
+        {
+            spell_specialization = Helpers.CreateFeature("MentalDexterity",
+                                            "Mental Dexterity",
+                                        "Casters may their bonus from Intelligence, Wisdom or Charisma (the highest stat is chosen) if it is higher than their Dexterity or Strength bonus for calculating the attack roll of Touch and Ray spells.",
+                                        "",
+                                        null,
+                                        FeatureGroup.None,
+                                        Helpers.Create<NewMechanics.AttackStatReplacementForCasters>(c =>
+                                        {
+                                            c.categories = new WeaponCategory[] { WeaponCategory.Touch, WeaponCategory.Ray };
+
+                                        }
+                                        )
+                                        );
+
+            magus_progression.LevelEntries[0].Features.Add(spell_specialization);
+            sorcerer_progression.LevelEntries[0].Features.Add(spell_specialization);
+            wizard_progression.LevelEntries[0].Features.Add(spell_specialization);
+            cleric_progression.LevelEntries[0].Features.Add(spell_specialization);
+            inquisitor_progression.LevelEntries[0].Features.Add(spell_specialization);
+            druid_progression.LevelEntries[0].Features.Add(spell_specialization);
+            ranger_progression.LevelEntries[0].Features.Add(spell_specialization);
+            paladin_progression.LevelEntries[0].Features.Add(spell_specialization);
+            bard_progression.LevelEntries[0].Features.Add(spell_specialization);
+        }
+
+        static BlueprintAbility acid_splash = library.Get<BlueprintAbility>("0c852a2405dd9f14a8bbcfaf245ff823");
+
+        static void cantripScaling()
+        {
+
+            acid_splash.AddComponent(Helpers.CreateContextRankConfig(type: AbilityRankType.DamageDice, max: 15, feature: MetamagicFeats.intensified_metamagic));
+
+
+            
         }
     }
 }

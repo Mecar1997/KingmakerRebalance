@@ -77,7 +77,7 @@ namespace CallOfTheWild
                                                       Helpers.GetIcon("3e9d1119d43d07c4c8ba9ebfd1671952"),
                                                       FeatureGroup.MagusArcana,
                                                       Helpers.Create<NewMechanics.MetamagicMechanics.ReachSpellStrike>(r => r.Metamagic = Metamagic.Reach),
-                                                      Helpers.PrerequisiteClassLevel(magus, 9),
+                                                      Helpers.PrerequisiteClassLevel(magus, 1),
                                                       Helpers.PrerequisiteFeature(library.Get<BlueprintFeature>("6aa84ca8918ac604685a3d39a13faecc")) //ranged spell strike
                                                       );
             magus_arcana.AllFeatures = magus_arcana.AllFeatures.AddToArray(reach_spellstrike);
