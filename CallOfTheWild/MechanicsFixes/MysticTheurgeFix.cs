@@ -47,9 +47,6 @@ namespace CallOfTheWild
             createSpellSynthesis();
             createLesserSpellSynthesis();
             createTheurgy();
-            changeMagusProgression();
-            changeDivineGuardianSpellbook();
-            addSpellSpecialization();
         }
 
 
@@ -419,72 +416,6 @@ namespace CallOfTheWild
             library.AddFeats(extra_spell_synthesis);
         }
 
-        static void changeMagusProgression()
-        {
-            var magus_spellstrike = library.Get<BlueprintFeature>("be50f4e97fff8a24ba92561f1694a945");
-            var magus_arcana = library.Get<BlueprintFeature>("e9dc4dfc73eaaf94aae27e0ed6cc9ada");
-            var magus_spellcombat = library.Get<BlueprintFeature>("2464ba53317c7fc4d88f383fac2b45f9");
-            var magus_counterstrike = library.Get<BlueprintFeature>("cd96b7275c206da4899c69ae127ffda6");
-
-
-            magus_progression.LevelEntries[0].Features.Add(magus_spellstrike);
-            magus_progression.LevelEntries[1].Features.Remove(magus_spellstrike);  
-
-
-            // Eldritch Archer
-            var eldritch_archer = library.Get<BlueprintArchetype>("44388c01eb4a29d4d90a25cc0574320d");
-            var eldritch_archer_spellstrike = library.Get<BlueprintFeature>("6aa84ca8918ac604685a3d39a13faecc");
-            var eldritch_archer_spellcombat = library.Get<BlueprintFeature>("8b68a5b8223beed40b137885116c408f");
-
-            eldritch_archer.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, magus_spellstrike, magus_spellcombat),
-                                                          Helpers.LevelEntry(3, magus_arcana),
-                                                          Helpers.LevelEntry(16, magus_counterstrike),
-                                                       };
-
-            eldritch_archer.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, eldritch_archer_spellcombat, eldritch_archer_spellstrike, magus_arcana),
-
-                                                       };
-        }
-
-        static void changeDivineGuardianSpellbook()
-        {
-            var divineguardian = library.Get<BlueprintArchetype>("5693945afac189a469ef970eac8f71d9");
-            var layOnHandsFeature = library.Get<BlueprintFeature>("858a3689c285c844d9e6ce278e686491");
-            var auraOfCourageFeature = library.Get<BlueprintFeature>("e45ab30f49215054e83b4ea12165409f");
-            divineguardian.RemoveSpellbook = false;
-            divineguardian.ChangeCasterType = false;
-
-            divineguardian.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(2, layOnHandsFeature),
-                                                          Helpers.LevelEntry(3, auraOfCourageFeature),
-                                                       };
-        }
-
-        static void addSpellSpecialization()
-        {
-            spell_specialization = Helpers.CreateFeature("MentalDexterity",
-                                            "Mental Dexterity",
-                                        "Casters may their bonus from Intelligence, Wisdom or Charisma (the highest stat is chosen) if it is higher than their Dexterity or Strength bonus for calculating the attack roll of Touch and Ray spells.",
-                                        "",
-                                        null,
-                                        FeatureGroup.None,
-                                        Helpers.Create<NewMechanics.AttackStatReplacementForCasters>(c =>
-                                        {
-                                            c.categories = new WeaponCategory[] { WeaponCategory.Touch, WeaponCategory.Ray };
-
-                                        }
-                                        )
-                                        );
-
-            magus_progression.LevelEntries[0].Features.Add(spell_specialization);
-            sorcerer_progression.LevelEntries[0].Features.Add(spell_specialization);
-            wizard_progression.LevelEntries[0].Features.Add(spell_specialization);
-            cleric_progression.LevelEntries[0].Features.Add(spell_specialization);
-            inquisitor_progression.LevelEntries[0].Features.Add(spell_specialization);
-            druid_progression.LevelEntries[0].Features.Add(spell_specialization);
-            ranger_progression.LevelEntries[0].Features.Add(spell_specialization);
-            paladin_progression.LevelEntries[0].Features.Add(spell_specialization);
-            bard_progression.LevelEntries[0].Features.Add(spell_specialization);
-        }
 
         static BlueprintAbility acid_splash = library.Get<BlueprintAbility>("0c852a2405dd9f14a8bbcfaf245ff823");
 

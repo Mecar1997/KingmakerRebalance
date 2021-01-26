@@ -57,8 +57,7 @@ namespace CallOfTheWild.Archetypes
         static public BlueprintFeatureSelection familiar;
         static public BlueprintFeature symbiosis;
         static public BlueprintFeature improved_symbiosis;
-        static BlueprintFeatureSelection magus_arcana = library.Get<BlueprintFeatureSelection>("e9dc4dfc73eaaf94aae27e0ed6cc9ada");
-        static BlueprintFeatureSelection eldritch_magus_arcana = library.Get<BlueprintFeatureSelection>("d4b54d9db4932454ab2899f931c2042c");
+
         static LibraryScriptableObject library => Main.library;
 
         static public void create()
@@ -88,7 +87,6 @@ namespace CallOfTheWild.Archetypes
             var arcane_weapon9 = library.Get<BlueprintFeature>("70be888059f99a245a79d6d61b90edc5");
             var arcane_weapon13 = library.Get<BlueprintFeature>("1804187264121cd439d70a96234d4ddb");
             var arcane_weapon17 = library.Get<BlueprintFeature>("3cbe3e308342b3247ba2f4fbaf5e6307");
-            
 
             var woodland_stride = library.CopyAndAdd<BlueprintFeature>("11f4072ea766a5840a46e6660894527d",
                                                             "NatureBondedMagusWooldlandStride",
@@ -96,7 +94,6 @@ namespace CallOfTheWild.Archetypes
             woodland_stride.SetDescription("At 7th level, a nature-bonded magus can move through any sort of undergrowth (such as natural briars, overgrown areas, thorns, and similar terrain) at his normal speed and without taking damage or suffering any other impairment.");
 
             archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, arcane_pool_feature),
-                                                          Helpers.LevelEntry(3, magus_arcana),
                                                           Helpers.LevelEntry(4, spell_recall),
                                                           Helpers.LevelEntry(5, arcane_weapon5),
                                                           Helpers.LevelEntry(9, arcane_weapon9),
@@ -105,33 +102,21 @@ namespace CallOfTheWild.Archetypes
                                                           Helpers.LevelEntry(17, arcane_weapon17),
                                                        };
 
-            archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, natural_magic[0], magus_arcana),
-                                                          Helpers.LevelEntry(4, natural_magic[1]),
-                                                          Helpers.LevelEntry(7, natural_magic[2]),
+            archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, familiar, natural_magic[0]),
+                                                          Helpers.LevelEntry(4, symbiosis, natural_magic[1]),
+                                                          Helpers.LevelEntry(7, symbiosis, woodland_stride, natural_magic[2]),
                                                           Helpers.LevelEntry(10, natural_magic[3]),
-                                                          Helpers.LevelEntry(11),
+                                                          Helpers.LevelEntry(11, symbiosis, improved_symbiosis),
                                                           Helpers.LevelEntry(13, natural_magic[4]),
-                                                          Helpers.LevelEntry(15),
+                                                          Helpers.LevelEntry(15, symbiosis),
                                                           Helpers.LevelEntry(16, natural_magic[5]),
-                                                          Helpers.LevelEntry(19),
+                                                          Helpers.LevelEntry(19, symbiosis),
                                                        };
             magus_class.Archetypes = magus_class.Archetypes.AddToArray(archetype);
 
             magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(natural_magic));
-            //  magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(symbiosis, improved_symbiosis));
-            magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(familiar, woodland_stride));
-
-
-            //magus_class.Progression.LevelEntries[2].Features.Add(symbiosis);
-            //magus_class.Progression.LevelEntries[3].Features.Add(improved_symbiosis);
-
-
-
-            magus_arcana.AllFeatures = magus_arcana.AllFeatures.AddToArray(symbiosis);
-            eldritch_magus_arcana.AllFeatures = eldritch_magus_arcana.AllFeatures.AddToArray(symbiosis);
-
-            magus_arcana.AllFeatures = magus_arcana.AllFeatures.AddToArray(improved_symbiosis);
-            eldritch_magus_arcana.AllFeatures = eldritch_magus_arcana.AllFeatures.AddToArray(improved_symbiosis);
+            magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(symbiosis));
+            magus_class.Progression.UIGroups = magus_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(familiar, woodland_stride, improved_symbiosis));
 
 
             var restricted_arcanas_ids = new string[]
@@ -171,39 +156,49 @@ namespace CallOfTheWild.Archetypes
         static void createSymbiosis()
         {
             symbiosis = Helpers.CreateFeature("SymbiosisNatureBondedMagusFeature",
-                                              "Two-Handed Spell Combat",
-                                                "After selecting this arcana, a magus is able to use Spell Combat ability with two-handed weapons",
+                                              "Symbiosis",
+                                                "A 4th level, a nature-bonded magus gains +1 bonus to its natural AC. This bonus increases by 1 at 7th level and every 4 levels thereafter.",
                                                 "",
-                                                library.Get<BlueprintActivatableAbility>("7902941ef70a0dc44bcfc174d6193386").Icon, //grace
+                                                Helpers.GetIcon("5b77d7cc65b8ab74688e74a37fc2f553"), //barkskin
                                                 FeatureGroup.None,
-                                                Helpers.Create<HoldingItemsMechanics.UseSpellCombatWith2hWeapon>()
+                                                Helpers.CreateAddContextStatBonus(StatType.AC, ModifierDescriptor.NaturalArmor)
                                                 );
+            symbiosis.Ranks = 5;
+            symbiosis.ReapplyOnLevelUp = true;
+            symbiosis.AddComponent(Helpers.CreateContextRankConfig(ContextRankBaseValueType.FeatureRank, feature: symbiosis));
         }
+
 
         static void createImprovedSymbiosis()
         {
             improved_symbiosis = Helpers.CreateFeature("ImprovedSymbiosisNatureBondedMagusFeature",
-                                              "Improved Spell Combat",
-                                                "After selecting this arcana, a magus is able to use Spell Combat ability even while his offhand is occupied.",
-                                                "",
-                                                Helpers.GetIcon("464a7193519429f48b4d190acb753cf0"), //grace
-                                                FeatureGroup.None,
-                                                Helpers.Create<HoldingItemsMechanics.UseSpellCombatWithOffhand>()
-                                                );
+                                                    "Improved Symbiosis",
+                                                    "At 11th level, a nature-bonded magus gains a +4 enhancement bonus to his Strength and Constitution. This bonus increases to +6 at level 15 and to +8 at level 19.",
+                                                    "",
+                                                    Helpers.GetIcon("4c3d08935262b6544ae97599b3a9556d"), //bulls strength
+                                                    FeatureGroup.None,
+                                                    Helpers.CreateAddContextStatBonus(StatType.Strength, ModifierDescriptor.Enhancement),
+                                                    Helpers.CreateAddContextStatBonus(StatType.Constitution, ModifierDescriptor.Enhancement),
+                                                    Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, classes: new BlueprintCharacterClass[] { archetype.GetParentClass() },
+                                                                                    progression: ContextRankProgression.Custom,
+                                                                                    customProgression: new (int, int)[] { (14, 4), (18, 6), (20, 8) }
+                                                                                    )
+                                                    );
+            improved_symbiosis.ReapplyOnLevelUp = true;
         }
 
 
         static void createNaturalMagic()
         {
             var magus_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
-            var druid_spell_list = library.Get<BlueprintSpellList>("bad8638d40639d04fa2f80a1cac67d6b");
+            var drudi_spell_list = library.Get<BlueprintSpellList>("bad8638d40639d04fa2f80a1cac67d6b");
             var magus_spell_list = library.Get<BlueprintSpellList>("4d72e1e7bd6bc4f4caaea7aa43a14639");
-            var combined_spell_list = Common.combineSpellLists("NatureBondedMagusNaturalMagicSpellList", druid_spell_list);
+            var combined_spell_list = Common.combineSpellLists("NatureBondedMagusNaturalMagicSpellList", drudi_spell_list);
             Common.excludeSpellsFromList(combined_spell_list, magus_spell_list);
 
             for (int i = 1; i <= 6; i++)
             {
-                natural_magic[i-1] = Helpers.CreateFeatureSelection($"NatureBondedMagusNaturalMagic{i}FeatureSelection",
+                natural_magic[i - 1] = Helpers.CreateFeatureSelection($"NatureBondedMagusNaturalMagic{i}FeatureSelection",
                                                 "Natural Magic " + $"(Level {i})",
                                                 "A nature - bonded magus adds one 1st - level spell from the druid spell list to his spellbook. Each time a nature - bonded magus gains the ability to cast a new level of spells, he can add one spell of that level from the druid spell list to his spellbook.",
                                                 "",
