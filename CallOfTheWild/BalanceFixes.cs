@@ -62,8 +62,65 @@ namespace CallOfTheWild
 
             fixSorcererBloodlineArcana();
             fixFeats();
-            fixClassFeatures();
+            if (Main.settings.balance_fixes_monk_ac)
+            {
+                fixMonkAc();
+            }
+            fixPaladinSaves();
             fixTwf();
+            fixVitalStrike();
+            fixCleave();
+        }
+
+
+        static void fixCleave()
+        {
+            var greate_cleave = library.Get<BlueprintFeature>("cc9c862ef2e03af4f89be5088851ea35");
+            var cleave = library.Get<BlueprintFeature>("d809b6c4ff2aaff4fa70d712a70f7d7b");
+            var cleave_ability = library.Get<BlueprintAbility>("6447d104a2222c14d9c9b8a36e4eb242");
+
+            cleave.SetDescription(greate_cleave.Description);
+            cleave_ability.SetDescription(greate_cleave.Description);
+            cleave_ability.GetComponent<AbilityCustomCleave>().GreaterFeature = cleave;
+
+            var cleaving_finish_greater = library.Get<BlueprintFeature>("ffa1b373190af4f4db7a5501904a1983");
+            cleaving_finish_greater.RemoveComponents<Prerequisite>();
+            cleaving_finish_greater.HideInUI = true;
+            cleaving_finish_greater.HideInCharacterSheetAndLevelUp = true;
+
+            var cleaving_finish = library.Get<BlueprintFeature>("59bd93899149fa44687ff4121389b3a9");
+            cleaving_finish.AddComponent(Helpers.CreateAddFact(cleaving_finish_greater));
+            cleaving_finish.SetDescription("If you make a melee attack, and your target drops to 0 or fewer hit points as a result of your attack, you can make another melee attack using your highest base attack bonus against another opponent within reach.");
+
+
+            var selections = library.GetAllBlueprints().OfType<BlueprintFeatureSelection>();
+            foreach (var s in selections)
+            {
+                s.AllFeatures = s.AllFeatures.RemoveFromArray(greate_cleave);
+                s.Features = s.Features.RemoveFromArray(greate_cleave);
+                s.AllFeatures = s.AllFeatures.RemoveFromArray(cleaving_finish_greater);
+                s.Features = s.Features.RemoveFromArray(cleaving_finish_greater);
+            }
+        }
+
+
+        static void fixVitalStrike()
+        {
+            var vital_strike = library.Get<BlueprintFeature>("14a1fc1356df9f146900e1e42142fc9d");
+            var improved_vital_strike = library.Get<BlueprintFeature>("52913092cd018da47845f36e6fbe240f");
+            var greater_vital_strike = library.Get<BlueprintFeature>("e2d1fa11f6b095e4fb2fd1dcf5e36eb3");
+            var vital_strike_ability = library.Get<BlueprintAbility>("efc60c91b8e64f244b95c66b270dbd7c");
+
+            var selections = library.GetAllBlueprints().OfType<BlueprintFeatureSelection>();
+
+            foreach (var s in selections)
+            {
+                s.AllFeatures = s.AllFeatures.RemoveFromArray(improved_vital_strike).RemoveFromArray(greater_vital_strike);
+                s.Features = s.Features.RemoveFromArray(improved_vital_strike).RemoveFromArray(greater_vital_strike);
+            }
+
+            vital_strike.SetDescription("You make a single attack that deals significantly more damage than normal.\nBenefit: As a standard action, you can make one attack at your highest base attack bonus that deals additional damage. Roll the weapon's damage dice for the attack twice (three times once your BAB reaches 11, four times once your BAB reaches 16) and add the results together before adding bonuses from Strength, weapon abilities (such as flaming), precision-based damage, and other damage bonuses. These extra weapon damage dice are not multiplied on a critical hit, but are added to the total.");
+            vital_strike_ability.SetDescription(vital_strike.Description);
         }
 
 
@@ -87,13 +144,12 @@ namespace CallOfTheWild
             twf_basic_mechanics.ReplaceComponent<TwoWeaponFightingAttacks>(Helpers.Create<IterativeTwoWeaponFightingAttacks>());
         }
 
-
-        static void fixClassFeatures()
+        static void fixMonkAc()
         {
             //fix monk ac bonuses
             var monk = library.Get<BlueprintCharacterClass>("e8f21e5b58e0569468e420ebea456124");
             var monk_ac_unlock = library.Get<BlueprintFeature>("2615c5f87b3d72b42ac0e73b56d895e0");
-            monk_ac_unlock.SetDescription("When unarmored and unencumbered, the monk adds his Wisdom bonus(if any, up to his monk level) to his AC and CMD. In addition, a monk gains a + 1 bonus to AC and CMD at 4th level. This bonus increases by 1 for every four monk levels thereafter, up to a maximum of + 5 at 20th level.\nThese bonuses to AC apply even against touch attacks or when the monk is flat - footed. He loses these bonuses when he is immobilized or helpless, when he wears any armor, when he carries a shield, or when he carries a medium or heavy load.") ;
+            monk_ac_unlock.SetDescription("When unarmored and unencumbered, the monk adds his Wisdom bonus (if any, up to his monk level) to his AC and CMD. In addition, a monk gains a + 1 bonus to AC and CMD at 4th level. This bonus increases by 1 for every four monk levels thereafter, up to a maximum of + 5 at 20th level.\nThese bonuses to AC apply even against touch attacks or when the monk is flat - footed. He loses these bonuses when he is immobilized or helpless, when he wears any armor, when he carries a shield, or when he carries a medium or heavy load.");
             var monk_ac = library.Get<BlueprintFeature>("e241bdfd6333b9843a7bfd674d607ac4");
             var monk_ac_property = NewMechanics.ContextValueWithLimitProperty.createProperty("MonkAcProperty", "b8ba561529dc4143b014994ea3f234fe",
                                                                                               Helpers.CreateContextRankConfig(ContextRankBaseValueType.StatBonus,
@@ -116,6 +172,7 @@ namespace CallOfTheWild
                 }
             }
 
+            var scaled_fist = library.Get<BlueprintArchetype>("5868fc82eb11a4244926363983897279");
             var scaled_fist_ac_unlock = library.Get<BlueprintFeature>("2a8922e28b3eba54fa7a244f7b05bd9e");
             scaled_fist_ac_unlock.SetDescription("When unarmored and unencumbered, the monk adds his Charisma bonus (if any, up to his monk level) to his AC and CMD. In addition, a monk gains a +1 bonus to AC and CMD at 4th level. This bonus increases by 1 for every four monk levels thereafter, up to a maximum of +5 at 20th level.\nThese bonuses to AC apply even against touch attacks or when the monk is flat-footed. He loses these bonuses when he is immobilized or helpless, when he wears any armor, when he carries a shield, or when he carries a medium or heavy load.");
             var scaled_fist_ac = library.Get<BlueprintFeature>("3929bfd1beeeed243970c9fc0cf333f8");
@@ -124,7 +181,8 @@ namespace CallOfTheWild
                                                                                                                   stat: Kingmaker.EntitySystem.Stats.StatType.Charisma,
                                                                                                                   min: 0,
                                                                                                                   type: AbilityRankType.Default),
-                                                                                  Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel,
+                                                                                  Helpers.CreateContextRankConfig(ContextRankBaseValueType.SummClassLevelWithArchetype,
+                                                                                                                  archetype: scaled_fist,
                                                                                                                   classes: new BlueprintCharacterClass[] { monk },
                                                                                                                   min: 0,
                                                                                                                   type: AbilityRankType.DamageDiceAlternative),
@@ -141,8 +199,11 @@ namespace CallOfTheWild
             }
 
             scaled_fist_ac.SetDescription("");
+        }
 
 
+        static void fixPaladinSaves()
+        {
             //fix paladin saves
             var divine_grace = library.Get<BlueprintFeature>("8a5b5e272e5c34e41aa8b4facbb746d3");
             var paladin = library.Get<BlueprintCharacterClass>("bfa11238e7ae3544bbeb4d0b92e897ec");
@@ -247,9 +308,6 @@ namespace CallOfTheWild
             //remove pbs from precise shot feat
             var precise_shot = library.Get<BlueprintFeature>("8f3d1e6b4be006f4d896081f2f889665");
             precise_shot.RemoveComponents<PrerequisiteFeature>();
-            //no itwf, gtwf
-
-            //free weapon finesse (?)
         }
 
 
@@ -283,6 +341,22 @@ namespace CallOfTheWild
                     serenity.SetDescription(serenity.Description.Replace("d" + old_dice.ToString(), "dxxx" + new_dice.ToString()));
                 }
                 serenity.SetDescription(serenity.Description.Replace("dxxx", "d"));
+            }
+
+            //fix phoenix_blast
+            {
+                var area = library.Get<BlueprintAbilityAreaEffect>("f6d511dda2d97b84783df21af423c878");
+                var feature = library.Get<BlueprintFeature>("9a1fc45d57567e946a20926f891453ed");
+
+                HashSet<DiceType> processed_local = new HashSet<DiceType>();
+                fixSpellDamageArea(area, processed_local);
+                foreach (var p in processed_local)
+                {
+                    var old_dice = (int)p;
+                    var new_dice = (int)dices_shift[p];
+                    feature.SetDescription(feature.Description.Replace("d" + old_dice.ToString(), "dxxx" + new_dice.ToString()));
+                }
+                feature.SetDescription(feature.Description.Replace("dxxx", "d"));
             }
         }
 
@@ -447,7 +521,8 @@ namespace CallOfTheWild
                     var area = (v.GetComponent<AbilityEffectRunAction>().Actions.Actions[0] as ContextActionSpawnAreaEffect).AreaEffect;
                     area.ReplaceComponent<AbilityAreaEffectRunAction>(a => a.UnitEnter.Actions = Common.changeAction<ContextActionDealDamage>(a.UnitEnter.Actions,
                                                                                                                                               ca => ca.Value = Helpers.CreateContextDiceValue(getDamageDie(DiceType.D6), Helpers.CreateContextValue(AbilityRankType.DamageBonus), 0))
-                                                                                                                                              );
+                                                                                                                                        );
+                    area.AddComponent(v.GetComponent<ContextRankConfig>().CreateCopy());
                     areas.Add(area);
                 }
 
@@ -596,6 +671,17 @@ namespace CallOfTheWild
             //scaled fist draconic heritage 
             var sf_draconic_heritage = library.Get<BlueprintFeatureSelection>("f9042eed12dac2745a2eb7a9a936906b");
             sf_draconic_heritage.SetDescription(replaceString(sf_draconic_heritage.Description, DiceType.D6));
+
+            //acerbic ring
+            var acerbic_ring = library.Get<BlueprintItemEquipmentRing>("1f34a6b309907a44681c689709976bff");
+            acerbic_ring.SetDescription(replaceString(acerbic_ring.Description, DiceType.D6));
+
+            var acid_splash = library.Get<BlueprintAbility>("0c852a2405dd9f14a8bbcfaf245ff823");
+            acid_splash.SetDescription(acid_splash.Description.Replace("3", getDamageDieString(DiceType.D3)));
+
+            //fix changed dexterity damage description
+            var polar_midnight = library.Get<BlueprintAbility>("ba48abb52b142164eba309fd09898856");
+            polar_midnight.SetDescription(polar_midnight.Description.Replace($"1d{getDamageDieString(DiceType.D6)}", "1d6"));
         }
 
        
@@ -718,7 +804,7 @@ namespace CallOfTheWild
                 af.Round.Actions = run_actions_array[0];
                 af.UnitEnter.Actions = run_actions_array[1];
                 af.UnitExit.Actions = run_actions_array[2];
-                af.UnitMove.Actions = run_actions_array[2];
+                af.UnitMove.Actions = run_actions_array[3];
             }
             );
             processed.AddRange(processed_local);

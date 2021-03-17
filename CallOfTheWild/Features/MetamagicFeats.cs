@@ -220,12 +220,17 @@ namespace CallOfTheWild
             AddMetamagicToFeatSelection(selective_metamagic);
 
             var spells = library.GetAllBlueprints().OfType<BlueprintAbility>().Where(b => b.IsSpell && b.LocalizedDuration.ToString().Empty() && b.HasAreaEffect() && b.EffectOnEnemy == AbilityEffectOnUnit.Harmful).Cast<BlueprintAbility>().ToArray();
+            spells = spells.AddToArray(library.Get<BlueprintAbility>("8c29e953190cc67429dc9c701b16b7c2"), //caustic erruption
+                                       library.Get<BlueprintAbility>("b22fd434bdb60fb4ba1068206402c4cf"), //prismatic spray
+                                       library.Get<BlueprintAbility>("4d9bf81b7939b304185d58a09960f589"), //faerie fire
+                                       library.Get<BlueprintAbility>("cf6c901fb7acc904e85c63b342e9c949") //confusion
+                                      );
             foreach (var s in spells)
             {
                 s.AvailableMetamagic = s.AvailableMetamagic | (Metamagic)MetamagicExtender.Selective;
                 if (s.Parent != null)
                 {
-                    s.AvailableMetamagic = s.AvailableMetamagic | (Metamagic)MetamagicExtender.Selective;
+                    s.Parent.AvailableMetamagic = s.Parent.AvailableMetamagic | (Metamagic)MetamagicExtender.Selective;
                 }
             }
         }
@@ -545,12 +550,15 @@ namespace CallOfTheWild
                 {
                     continue;
                 }
-                var damage = Common.extractActions<ContextActionDealDamage>(run_action.Actions).Where(d => d.Value.DiceCountValue.ValueType == ContextValueType.Rank).ToArray();
-                var context_rank_configs = spell.GetComponents<ContextRankConfig>().Where(c =>                                                                                     
-                                                                                          Helpers.GetField<ContextRankBaseValueType>(c, "m_BaseValueType") == ContextRankBaseValueType.CasterLevel
-                                                                                          && Helpers.GetField<bool>(c, "m_UseMax") == true
-                                                                                          && Helpers.GetField<int>(c, "m_Max") != Helpers.GetField<int>(c, "m_Min")                                                                                 
-                                                                                      ).ToArray();
+                var context_rank_configs = spell.GetComponents<ContextRankConfig>().Where(c =>
+                                                                          Helpers.GetField<ContextRankBaseValueType>(c, "m_BaseValueType") == ContextRankBaseValueType.CasterLevel
+                                                                          && Helpers.GetField<bool>(c, "m_UseMax") == true
+                                                                          && Helpers.GetField<int>(c, "m_Max") != Helpers.GetField<int>(c, "m_Min")
+                                                                      ).ToArray();
+                var calculate_shared_values = spell.GetComponents<ContextCalculateSharedValue>();
+                var damage = Common.extractActions<ContextActionDealDamage>(run_action.Actions).Where(d => d.Value.DiceCountValue.ValueType == ContextValueType.Rank
+                                                                                                      || (d.Value.BonusValue.IsValueShared && calculate_shared_values.Any(csv => csv.Value.DiceCountValue.ValueType == ContextValueType.Rank && csv.ValueType == d.Value.BonusValue.ValueShared))).ToArray();
+
                 if (damage.Empty() || context_rank_configs.Empty())
                 {
                     continue;
@@ -558,7 +566,20 @@ namespace CallOfTheWild
 
                 foreach (var d in damage)
                 {
-                    var config = context_rank_configs.FirstOrDefault(c => Helpers.GetField<AbilityRankType>(c, "m_Type") == d.Value.DiceCountValue.ValueRank);
+                    ContextRankConfig config = null;
+
+                    if (d.Value.DiceCountValue.ValueType == ContextValueType.Rank)
+                    {
+                        config = context_rank_configs.FirstOrDefault(c => Helpers.GetField<AbilityRankType>(c, "m_Type") == d.Value.DiceCountValue.ValueRank);
+                    }
+                    else if (d.Value.BonusValue.IsValueShared)
+                    {
+                        var shared_value_config = calculate_shared_values.FirstOrDefault(csv => csv.Value.DiceCountValue.ValueType == ContextValueType.Rank && csv.ValueType == d.Value.BonusValue.ValueShared);
+                        if (shared_value_config != null)
+                        {
+                            config = context_rank_configs.FirstOrDefault(c => Helpers.GetField<AbilityRankType>(c, "m_Type") == shared_value_config.Value.DiceCountValue.ValueRank);
+                        }
+                    }
                     if (config != null)
                     {
                         Helpers.SetField(config, "m_Feature", intensified_metamagic);
@@ -1052,7 +1073,7 @@ namespace CallOfTheWild
             
                 if ((mask & (Metamagic)MetamagicExtender.Intensified) != 0)
                 {
-                    extra_metamagic += "Intesnsified, ";
+                    extra_metamagic += "Intensified, ";
                 }
                 if ((mask & (Metamagic)MetamagicExtender.Piercing) != 0)
                 {

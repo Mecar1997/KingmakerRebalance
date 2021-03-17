@@ -16,12 +16,14 @@ using Kingmaker.Enums;
 using Kingmaker.Items;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules;
+using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.Abilities.Components.AreaEffects;
 using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
+using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
 using Kingmaker.UnitLogic.Alignments;
@@ -140,6 +142,26 @@ namespace CallOfTheWild
         static public BlueprintFeature steadfast_personality;
         static public BlueprintFeature two_weapon_rend;
 
+        static public BlueprintFeature disruptive;
+        static public BlueprintFeature spellbreaker;
+
+        static public BlueprintFeature improved_feint;
+        static public BlueprintAbility improved_feint_ability;
+        static public BlueprintFeature greater_feint;
+        static public BlueprintFeature ranged_feint;
+        static public BlueprintBuff feint_buff;
+        static public BlueprintBuff greater_feint_buff;
+
+
+        static public BlueprintFeature swordplay_style;
+        static public BlueprintActivatableAbility swordplay_style_ability;
+        static public BlueprintFeature swordplay_upset;
+
+        static public BlueprintFeature two_weapon_feint;
+        static public BlueprintFeature improved_two_weapon_feint;
+
+
+
         static internal void load()
         {
             Main.logger.Log("New Feats test mode " + test_mode.ToString());
@@ -224,6 +246,316 @@ namespace CallOfTheWild
 
             createViciousStomp();
             createSteadfastPersonality();
+
+            createFeintFeats();
+            createSwordplayStyle();
+            createTwoWeaponFeintFeats();
+        }
+
+        static void createTwoWeaponFeintFeats()
+        {
+            var combat_expertise = library.Get<BlueprintFeature>("4c44724ffa8844f4d9bedb5bb27d144a");
+
+            //two weapon feint
+            var two_weapon_fighting = library.Get<BlueprintFeature>("ac8aaf29054f5b74eb18f2af950e752d");
+            var improved_two_weapon_fighting = library.Get<BlueprintFeature>("9af88f3ed8a017b45a6837eab7437629");
+            improved_two_weapon_feint = Helpers.CreateFeature("ImprovedTwoWeaponFeintFeature",
+                                                   "Improved Two-Weapon Feint",
+                                                   "While using Two-Weapon Fighting to make melee attacks, you can forgo your first primary-hand melee attack to make a Bluff check to feint an opponent. If you successfully feint, that opponent is denied his Dexterity bonus to AC until the end of your turn.",
+                                                   "",
+                                                   LoadIcons.Image2Sprite.Create(@"FeatIcons/TwoWeaponFeintImproved.png"),
+                                                   FeatureGroup.Feat,
+                                                   Helpers.PrerequisiteStatValue(StatType.Dexterity, 15, any: true),
+                                                   Helpers.Create<PrerequisiteMechanics.CompoundPrerequisite>(p =>
+                                                   {
+                                                       p.prerequisite1 = Helpers.PrerequisiteStatValue(StatType.Strength, 15);
+                                                       p.prerequisite2 = Helpers.PrerequisiteFeature(CallOfTheWild.NewFeats.prodigious_two_weapon_fighting);
+                                                       p.Group = Prerequisite.GroupType.Any;
+                                                   }
+                                                                      ),
+                                                   Helpers.PrerequisiteStatValue(StatType.Intelligence, 13),
+                                                   Helpers.PrerequisiteFeature(two_weapon_fighting),
+                                                   Helpers.PrerequisiteFeature(combat_expertise)
+                                                   );
+
+            if (!Main.settings.balance_fixes)
+            {
+                improved_two_weapon_feint.AddComponent(Helpers.PrerequisiteFeature(improved_two_weapon_fighting));
+            }
+            improved_two_weapon_feint.Groups = improved_two_weapon_feint.Groups.AddToArray(FeatureGroup.CombatFeat);
+
+            var twf_action = Helpers.CreateConditional(Helpers.CreateConditionsCheckerOr(Common.createContextConditionCasterHasFact(CallOfTheWild.NewFeats.greater_feint), Common.createContextConditionCasterHasFact(improved_two_weapon_feint)),
+                                                                    Common.createContextActionApplyBuff(CallOfTheWild.NewFeats.greater_feint_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 6),
+                                                                    Common.createContextActionApplyBuff(CallOfTheWild.NewFeats.feint_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 6)
+                                                                    );
+            var twf_feint_action = Helpers.Create<CallOfTheWild.SkillMechanics.ContextFeintSkillCheck>(c => c.Success = Helpers.CreateActionList(twf_action));
+            var twf_feint_action_list = Helpers.CreateActionList(twf_feint_action);
+            var twf_feint_buff = Helpers.CreateBuff("TwoWeaponFeintBuff",
+                                                                  "Two Weapon Feint",
+                                                                  "While using Two-Weapon Fighting to make melee attacks, you can forgo your first primary-hand melee attack to make a Bluff check to feint an opponent.",
+                                                                  "",
+                                                                  LoadIcons.Image2Sprite.Create(@"FeatIcons/TwoWeaponFeint.png"),
+                                                                  null,
+                                                                  Helpers.Create<CallOfTheWild.AttackReplacementMechanics.ReplaceAttackWithActionOnFullAttack>(f => f.action = twf_feint_action_list)
+                                                                  );
+
+            var twf_feint_ability = Helpers.CreateActivatableAbility("TwoWeaponFeintActivatableAbility",
+                                                                                   twf_feint_buff.Name,
+                                                                                   twf_feint_buff.Description,
+                                                                                   "",
+                                                                                   twf_feint_buff.Icon,
+                                                                                   twf_feint_buff,
+                                                                                   AbilityActivationType.Immediately,
+                                                                                   Kingmaker.UnitLogic.Commands.Base.UnitCommand.CommandType.Free,
+                                                                                   null,
+                                                                                   Helpers.Create<CallOfTheWild.NewMechanics.TwoWeaponFightingRestriction>());
+            twf_feint_ability.DeactivateImmediately = true;
+            twf_feint_ability.Group = CallOfTheWild.ActivatableAbilityGroupExtension.AttackReplacement.ToActivatableAbilityGroup();
+            twf_feint_ability.IsOnByDefault = true;
+
+            two_weapon_feint = Common.ActivatableAbilityToFeature(twf_feint_ability, false);
+            two_weapon_feint.AddComponents(Helpers.PrerequisiteStatValue(StatType.Dexterity, 15, any: true),
+                                           Helpers.Create<CallOfTheWild.PrerequisiteMechanics.CompoundPrerequisite>(p =>
+                                           {
+                                               p.prerequisite1 = Helpers.PrerequisiteStatValue(StatType.Strength, 15);
+                                               p.prerequisite2 = Helpers.PrerequisiteFeature(CallOfTheWild.NewFeats.prodigious_two_weapon_fighting);
+                                               p.Group = Prerequisite.GroupType.Any;
+                                           }
+                                                                ),
+                                           Helpers.PrerequisiteStatValue(StatType.Intelligence, 13),
+                                           Helpers.PrerequisiteFeature(two_weapon_fighting),
+                                           Helpers.PrerequisiteFeature(combat_expertise)
+                                           );
+            two_weapon_feint.Groups = new FeatureGroup[] { FeatureGroup.Feat, FeatureGroup.CombatFeat };
+
+            improved_two_weapon_feint.AddComponent(Helpers.PrerequisiteFeature(two_weapon_feint));
+            library.AddCombatFeats(two_weapon_feint, improved_two_weapon_feint);
+        }
+
+
+        static void createSwordplayStyle()
+        {
+            var combat_expertise_buff = library.Get<BlueprintBuff>("e81cd772a7311554090e413ea28ceea1");
+            var fight_defensively_buff = library.Get<BlueprintBuff>("6ffd93355fb3bcf4592a5d976b1d32a9");
+
+            var combat_expertise = library.Get<BlueprintFeature>("4c44724ffa8844f4d9bedb5bb27d144a");
+            var icon = LoadIcons.Image2Sprite.Create(@"FeatIcons/SwordplayStyle.png");
+            var buff = Helpers.CreateBuff("SwordplayStyleEffectBuff",
+                                                        "Swordplay Style",
+                                                        "While using this style, wielding  a weapon from heavy or light blades fighter weapon group, and fighting defensively or using either the total defense action or the Combat Expertise feat, you gain a +1 shield bonus to your Armor Class. In addition, you do not take the penalty on melee attacks from Combat Expertise on the first attack roll you make each turn. You still take the penalty on additional attacks, including attacks of opportunity.",
+                                                        "",
+                                                        icon,
+                                                        null,
+                                                        Helpers.Create<CallOfTheWild.NewMechanics.ACBonusIfHasFacts>(a =>
+                                                        {
+                                                            a.Bonus = 1;
+                                                            a.Descriptor = ModifierDescriptor.Shield;
+                                                            a.CheckedFacts = new Kingmaker.Blueprints.Facts.BlueprintUnitFact[] { fight_defensively_buff, combat_expertise_buff };
+                                                        }
+                                                                                                                                    ),
+                                                        Helpers.Create<CallOfTheWild.NewMechanics.AttackBonusOnAttackInitiationIfHasFact>(a =>
+                                                        {
+                                                            a.CheckedFact = combat_expertise_buff;
+                                                            a.Bonus = Helpers.CreateContextValue(AbilityRankType.Default);
+                                                            a.OnlyFirstAttack = true;
+                                                            a.Descriptor = ModifierDescriptor.UntypedStackable;
+                                                            a.WeaponAttackTypes = new AttackType[] { AttackType.Melee, AttackType.Touch, AttackType.Ranged, AttackType.RangedTouch };
+                                                        }
+                                                                                                                                                       ),
+                                                        Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.CustomProperty,
+                                                                                                      progression: ContextRankProgression.AsIs, stepLevel: 1, min: 0,
+                                                                                                      customProperty: library.Get<BlueprintUnitProperty>("8a63b06d20838954e97eb444f805ec89")) //combat expertise custom property
+                                                       );
+
+            WeaponCategory[] categories = new WeaponCategory[] {WeaponCategory.BastardSword, WeaponCategory.Dagger, WeaponCategory.DoubleSword, WeaponCategory.DuelingSword, WeaponCategory.ElvenCurvedBlade,
+                                                                WeaponCategory.Estoc, WeaponCategory.Falcata, WeaponCategory.Falchion, WeaponCategory.Greatsword, WeaponCategory.Kama, WeaponCategory.Kukri,
+                                                                WeaponCategory.Longsword, WeaponCategory.Rapier, WeaponCategory.Sai, WeaponCategory.Scimitar, WeaponCategory.Shortsword,
+                                                               WeaponCategory.Starknife, WeaponCategory.Scythe, WeaponCategory.Sickle};
+
+            swordplay_style_ability = Helpers.CreateActivatableAbility("SwordplayStyleActivatableAbility",
+                                                                                     buff.Name,
+                                                                                     buff.Description,
+                                                                                     "",
+                                                                                     buff.Icon,
+                                                                                     buff,
+                                                                                     AbilityActivationType.Immediately,
+                                                                                     Kingmaker.UnitLogic.Commands.Base.UnitCommand.CommandType.Free,
+                                                                                     null,
+                                                                                     Helpers.Create<CallOfTheWild.NewMechanics.ActivatableAbilityMainWeaponCategoryAllowed>(a => a.categories = categories)
+                                                                                     );
+            swordplay_style_ability.Group = ActivatableAbilityGroup.CombatStyle;
+
+            swordplay_style = Common.ActivatableAbilityToFeature(swordplay_style_ability, false);
+            swordplay_style.Groups = new FeatureGroup[] { FeatureGroup.Feat, FeatureGroup.CombatFeat, FeatureGroup.StyleFeat };
+            swordplay_style.AddComponents(Helpers.PrerequisiteFeature(combat_expertise),
+                                          Helpers.PrerequisiteStatValue(StatType.BaseAttackBonus, 3)
+                                          );
+
+            var weapon_focus = library.Get<BlueprintParametrizedFeature>("1e1f627d26ad36f43bbd26cc2bf8ac7e");
+            foreach (var c in categories)
+            {
+                swordplay_style.AddComponent(Common.createPrerequisiteParametrizedFeatureWeapon(weapon_focus, c, any: true));
+            }
+
+            swordplay_upset = Helpers.CreateFeature("SwordplayUpsetFeature",
+                                                                  "Swordplay Upset",
+                                                                  "While using Swordplay Style, you can attempt a feint against an opponent that makes a melee attack against you and misses.",
+                                                                  "",
+                                                                  LoadIcons.Image2Sprite.Create(@"FeatIcons/SwordplayUpset.png"),
+                                                                  FeatureGroup.Feat,
+                                                                  Helpers.PrerequisiteStatValue(StatType.BaseAttackBonus, 5),
+                                                                  Helpers.PrerequisiteFeature(swordplay_style),
+                                                                  Helpers.PrerequisiteFeature(improved_feint)
+                                                                  );
+            swordplay_upset.Groups = swordplay_upset.Groups.AddToArray(FeatureGroup.CombatFeat, FeatureGroup.StyleFeat);
+            var feint_action = Helpers.CreateConditional(Common.createContextConditionHasFacts(false, improved_feint_ability.GetComponent<AbilityTargetHasFact>().CheckedFacts),
+                                                                       null,
+                                                                       improved_feint_ability.GetComponent<AbilityEffectRunAction>().Actions.Actions
+                                                                      );
+
+            buff.AddComponent(Helpers.Create<NewMechanics.ActionOnNearMissIfHasFact>(a =>
+            {
+                a.checked_fact = swordplay_upset;
+                a.Action = Helpers.CreateActionList(feint_action);
+                a.HitAndArmorDifference = 1000;
+                a.MeleeOnly = true;
+                a.OnAttacker = true;
+            }                                                                                                   )
+            );
+            library.AddCombatFeats(swordplay_style, swordplay_upset);
+        }
+
+        static void createFeintFeats()
+        {
+            var combat_expertise = library.Get<BlueprintFeature>("4c44724ffa8844f4d9bedb5bb27d144a");
+            ranged_feint = Helpers.CreateFeature("RangedFeintFeature",
+                                                               "Ranged Feint",
+                                                               "You can feint with a ranged weapon by throwing a thrown weapon or firing one arrow, bolt, bullet, or other piece of ammunition; this feint takes the same action as normal to feint, but depending on your weapon, you might have to reload or draw another weapon afterward. When you successfully use a ranged feint, you deny that enemy its Dexterity bonus to AC against your ranged attacks as well as your melee attacks for the same duration as normal. If your feints normally deny a foe its Dexterity bonus to AC against attacks other than your own, this applies only against others’ melee attacks.",
+                                                               "",
+                                                               LoadIcons.Image2Sprite.Create(@"FeatIcons/RangedFeint.png"),
+                                                               FeatureGroup.Feat,
+                                                               Helpers.PrerequisiteStatValue(StatType.BaseAttackBonus, 2),
+                                                               Helpers.PrerequisiteStatValue(StatType.SkillPersuasion, 2)
+                                                               );
+            ranged_feint.Groups = ranged_feint.Groups.AddToArray(FeatureGroup.CombatFeat);
+
+            greater_feint = Helpers.CreateFeature("GreaterFeintFeature",
+                                                               "Greater Feint",
+                                                               "Whenever you use feint to cause an opponent to lose his Dexterity bonus, he loses that bonus until the beginning of your next turn, in addition to losing his Dexterity bonus against your next attack.",
+                                                               "",
+                                                               LoadIcons.Image2Sprite.Create(@"FeatIcons/GreaterFeint.png"),
+                                                               FeatureGroup.Feat,
+                                                               Helpers.PrerequisiteStatValue(StatType.BaseAttackBonus, 6),
+                                                               Helpers.PrerequisiteStatValue(StatType.Intelligence, 13),
+                                                               Helpers.PrerequisiteFeature(combat_expertise)
+                                                               );
+            greater_feint.Groups = greater_feint.Groups.AddToArray(FeatureGroup.CombatFeat);
+
+            var buff = Helpers.CreateBuff("FeintBuff",
+                                                        "Feint",
+                                                        "Your opponent is considered flat-footed against your next melee attack.",
+                                                        "",
+                                                        CallOfTheWild.LoadIcons.Image2Sprite.Create(@"AbilityIcons/Feint.png"),
+                                                        null,
+                                                        Helpers.Create<FlatFootedMechanics.FlatFootedAgainstCaster>(f => { f.remove_after_attack = true; f.ranged_allowed_fact = ranged_feint; })
+                                                        );
+
+            var greater_buff = Helpers.CreateBuff("GreaterFeintBuff",
+                                                                "Greater Feint",
+                                                                "Your opponent is considered flat-footed against melee attacks.",
+                                                                "",
+                                                                CallOfTheWild.LoadIcons.Image2Sprite.Create(@"AbilityIcons/Feint.png"),
+                                                                null,
+                                                                Helpers.Create<FlatFootedMechanics.FlatFootedAgainstAttacType>(f => f.allowed_attack_types = new AttackType[] { AttackType.Melee, AttackType.Touch }),
+                                                                Helpers.Create<FlatFootedMechanics.FlatFootedAgainstCaster>(f => { f.remove_after_attack = false; f.ranged_allowed_fact = ranged_feint; })
+                                                                );
+
+            var action = Helpers.CreateConditional(Common.createContextConditionCasterHasFact(greater_feint),
+                                                                Common.createContextActionApplyBuff(greater_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 6),
+                                                                Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 6)
+                                                                );
+            var action_list = Helpers.CreateActionList(action);
+
+            var vermin = library.Get<BlueprintFeature>("09478937695300944a179530664e42ec");
+            var construct = library.Get<BlueprintFeature>("fd389783027d63343b4a5634bd81645f");
+            var aberration = library.Get<BlueprintFeature>("3bec99efd9a363242a6c8d9957b75e91");
+            var plant = library.Get<BlueprintFeature>("706e61781d692a042b35941f14bc41c5");
+            improved_feint_ability = Helpers.CreateAbility("ImprovedFeintAbility",
+                                                                         "Feint",
+                                                                         "You can feint as a move action. To feint, make a Bluff skill check. The DC of this check is equal to 10 + your opponent’s base attack bonus + your opponent’s Wisdom modifier. If successful, the next melee attack you make against the target does not allow him to use his Dexterity bonus to AC (if any). This attack must be made on or before your next turn.\n"
+                                                                         + "When feinting against a non - humanoid DC increases by 4. Against a creature of animal Intelligence (1 or 2), by 8. Against a creature lacking an Intelligence score, it’s impossible. Feinting in combat does not provoke attacks of opportunity.",
+                                                                         "",
+                                                                         buff.Icon,
+                                                                         AbilityType.Special,
+                                                                         Kingmaker.UnitLogic.Commands.Base.UnitCommand.CommandType.Move,
+                                                                         AbilityRange.Weapon,
+                                                                         "Your next attack or until end of your next turn",
+                                                                         "",
+                                                                         Helpers.CreateRunActions(Helpers.Create<SkillMechanics.ContextFeintSkillCheck>(c => c.Success = action_list)),
+                                                                         Helpers.Create<NewMechanics.AbilityCasterMainWeaponIsMeleeUnlessHasFact>(a => a.ranged_allowed_fact = ranged_feint),
+                                                                         Common.createAbilityTargetHasFact(true, vermin, construct, aberration, plant)
+                                                                         );
+            improved_feint_ability.setMiscAbilityParametersSingleTargetRangedHarmful(works_on_allies: true,
+                                                                                     animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Special);
+
+            improved_feint = Helpers.CreateFeature("ImprovedFeintFeature",
+                                                   "Improved Feint",
+                                                   improved_feint_ability.Description,
+                                                   "",
+                                                   LoadIcons.Image2Sprite.Create(@"FeatIcons/ImprovedFeint.png"),
+                                                   FeatureGroup.Feat,
+                                                   Helpers.CreateAddFact(improved_feint_ability),
+                                                   Helpers.PrerequisiteStatValue(StatType.Intelligence, 13),
+                                                   Helpers.PrerequisiteFeature(combat_expertise)
+                                                   );
+
+            improved_feint.Groups = improved_feint.Groups.AddToArray(FeatureGroup.CombatFeat);
+
+            greater_feint.AddComponent(improved_feint.PrerequisiteFeature());
+            ranged_feint.AddComponent(improved_feint.PrerequisiteFeature());
+
+            library.AddCombatFeats(improved_feint, greater_feint, ranged_feint);
+            feint_buff = buff;
+            greater_feint_buff = greater_buff;
+        }
+
+
+        static internal void createSpellbreaker()
+        {
+            spellbreaker = Helpers.CreateFeature("SpellbreakerFeature",
+                                                "Spellbreaker",
+                                                "Benefit: Enemies in your threatened area that succeed their checks to cast spells defensively provoke attacks of opportunity from you.\n"
+                                                + "Normal: Only enemies that fail to cast spells defensively provoke attacks of opportunity.",
+                                                "",
+                                                LoadIcons.Image2Sprite.Create(@"FeatIcons/Spellbreaker.png"),
+                                                FeatureGroup.CombatFeat,
+                                                Helpers.Create<AooMechanics.Spellbreaker>(),
+                                                Helpers.PrerequisiteFeature(disruptive),
+                                                Helpers.PrerequisiteClassLevel(library.Get<BlueprintCharacterClass>("48ac8db94d5de7645906c7d0ad3bcfbd"), 10)
+                                                );
+            spellbreaker.Groups = new FeatureGroup[] { FeatureGroup.Feat, FeatureGroup.CombatFeat };
+            library.AddCombatFeats(spellbreaker);
+        }
+
+
+        static internal void createDisruptive()
+        {
+            var disruptive_buff = Helpers.CreateBuff("DisruptiveAuraEffectBuff",
+                                      "Disruptive Effect",
+                                      "The DC to cast spells defensively increases by +4 for all enemies that are within your threatened area.",
+                                      "",
+                                      LoadIcons.Image2Sprite.Create(@"FeatIcons/Disruptive.png"),
+                                      null,
+                                      Helpers.Create<ConcentrationBonus>(c => c.Value = -4)
+                                      );
+
+            disruptive = Common.createAuraEffectFeature("Disruptive", disruptive_buff.Description, disruptive_buff.Icon,
+                                                                      disruptive_buff, 10.Feet(), Helpers.CreateConditionsCheckerAnd(Helpers.Create<ContextConditionIsEnemy>())
+                                                       );
+
+            disruptive.Groups = new FeatureGroup[] {FeatureGroup.Feat, FeatureGroup.CombatFeat };
+            disruptive.AddComponent(Helpers.PrerequisiteClassLevel(library.Get<BlueprintCharacterClass>("48ac8db94d5de7645906c7d0ad3bcfbd"), 6));
+            library.AddCombatFeats(disruptive);
         }
 
 
@@ -244,6 +576,7 @@ namespace CallOfTheWild
                                                     Helpers.PrerequisiteFeature(twf),
                                                     Helpers.PrerequisiteFeature(double_slice)
                                                     );
+            two_weapon_rend.Groups = two_weapon_rend.Groups.AddToArray(FeatureGroup.Feat);
             two_weapon_rend.Groups = two_weapon_rend.Groups.AddToArray(FeatureGroup.Feat);
             library.AddCombatFeats(two_weapon_rend);
 
@@ -2129,7 +2462,7 @@ namespace CallOfTheWild
         {
             devastating_strike = Helpers.CreateFeature("DevastatingStrikeFeature",
                                                        "Devastating Strike",
-                                                       "Whenever you use Vital Strike, Improved Vital Strike, or Greater Vital Strike, you gain a +2 bonus on each extra weapon damage dice roll those feats grant (+6 maximum). This bonus damage is multiplied on a critical hit.",
+                                                       $"Whenever you use Vital Strike{(Main.settings.balance_fixes ? "" : ", Improved Vital Strike, or Greater Vital Strike")}, you gain a +2 bonus on each extra weapon damage dice roll those feats grant (+6 maximum). This bonus damage is multiplied on a critical hit.",
                                                        "",
                                                        null,
                                                        FeatureGroup.Feat,
@@ -2351,7 +2684,16 @@ namespace CallOfTheWild
                                                                    "",
                                                                    sound_burst.Icon,
                                                                    null,
-                                                                   Common.createAddTargetAttackWithWeaponTrigger(deal_dmg, null, not_reach: false, only_melee: false, wait_for_attack_to_resolve: true)
+                                                                   Helpers.Create<NewMechanics.ReceiveExtraDamageOnWeaponAttack>(r =>
+                                                                   {
+                                                                       r.damage = new DamageDescription()
+                                                                       {
+                                                                           TypeDescription = Common.createEnergyDamageDescription(Kingmaker.Enums.Damage.DamageEnergyType.Sonic),
+                                                                           Dice = new DiceFormula(1, DiceType.D6)
+                                                                       };
+                                                                   }
+                                                                   )
+                                                                   //Common.createAddTargetAttackWithWeaponTrigger(deal_dmg, null, not_reach: false, only_melee: false, wait_for_attack_to_resolve: true)
                                                                    );
 
             var area = library.CopyAndAdd<BlueprintAbilityAreaEffect>("4a15b95f8e173dc4fb56924fe5598dcf", "DiscordantVoiceArea", ""); //dirge of doom
@@ -2711,6 +3053,32 @@ namespace CallOfTheWild
             library.AddCombatFeats(furious_focus);
 
             BladeTutor.RuleCalculateAttackBonusWithoutTarget_OnTrigger_Patch.facts.Add(furious_focus);
+
+
+            var ranger_styles = new BlueprintFeatureSelection[]{library.Get<BlueprintFeatureSelection>("f489d9f696c588d43907b879d89451be"),
+                                                       library.Get<BlueprintFeatureSelection>("83a4b2605333e004f875e2fd22f6be30"),
+                                                       library.Get<BlueprintFeatureSelection>("f96ad7f1fe7e62c4d8f7540d0f4c7313")
+                                                      };
+
+            var rs2 = library.Get<BlueprintFeatureSelection>("83a4b2605333e004f875e2fd22f6be30");
+            var rs3 = library.Get<BlueprintFeatureSelection>("f96ad7f1fe7e62c4d8f7540d0f4c7313");
+            var cleaving_finish = library.Get<BlueprintFeature>("59bd93899149fa44687ff4121389b3a9");
+            var sunder = library.Get<BlueprintFeature>("9719015edcbf142409592e2cbaab7fe1");
+            var greater_sunder = library.Get<BlueprintFeature>("54d824028117e884a8f9356c7c66149b");
+
+            rs2.AllFeatures = rs2.AllFeatures.AddToArray(furious_focus, sunder).RemoveFromArray(cleaving_finish);
+            rs3.AllFeatures = rs3.AllFeatures.AddToArray(furious_focus, sunder, greater_sunder).RemoveFromArray(cleaving_finish);
+            var greater_cleave = library.Get<BlueprintFeature>("cc9c862ef2e03af4f89be5088851ea35");
+            if (Main.settings.balance_fixes)
+            {
+                rs2.AllFeatures = rs2.AllFeatures.RemoveFromArray(greater_cleave);
+                rs3.AllFeatures = rs3.AllFeatures.RemoveFromArray(greater_cleave);
+            }
+
+            foreach (var rs in ranger_styles)
+            {
+               rs.SetDescription($"At 2nd level, the ranger can select from Cleave, Power Attack, and Intimidating Prowess.\nAt 6th level, he adds Furious Focus,{(Main.settings.balance_fixes ? "" : " Great Cleave,")} and Sunder to the list.\nAt 10th level, he adds Dreadful Carnage and Greater Sunder to the list.");
+            }
         }
 
         static void createRagingBrutality()
@@ -2785,7 +3153,7 @@ namespace CallOfTheWild
 
             blooded_arcane_strike = Helpers.CreateFeature("BloodedArcaneStrikeFeature",
                                                           "Blooded Arcane Strike",
-                                                          "While you are bloodraging, you don’t need to spend a swift action to use your Arcane Strike—it is always in effect. When you use this ability with Vital Strike, Improved Vital Strike, or Greater Vital Strike, the bonus on damage rolls for Arcane Strike is multiplied by the number of times (two, three, or four) you roll damage dice for one of those feats.",
+                                                          $"While you are bloodraging, you don’t need to spend a swift action to use your Arcane Strike—it is always in effect. When you use this ability with Vital Strike{(Main.settings.balance_fixes ? "" : ", Improved Vital Strike, or Greater Vital Strike")}, the bonus on damage rolls for Arcane Strike is multiplied by the number of times (two, three, or four) you roll damage dice for one of those feats.",
                                                           "",
                                                           LoadIcons.Image2Sprite.Create(@"FeatIcons/Icon_Arcane_Blooded_Strike.png"), //arcane_strike_feature.Icon
                                                           FeatureGroup.CombatFeat,

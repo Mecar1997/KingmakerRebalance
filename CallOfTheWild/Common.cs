@@ -1824,15 +1824,21 @@ namespace CallOfTheWild
         }
 
 
-        static public BlueprintBuff createBuffAreaEffect(BlueprintBuff buff, Feet radius, ConditionsChecker conditions)
+        static public BlueprintBuff createBuffAreaEffect(BlueprintBuff buff, Feet radius, ConditionsChecker conditions, string prefix)
         {
-            var area_effect = library.CopyAndAdd<BlueprintAbilityAreaEffect>("7ced0efa297bd5142ab749f6e33b112b", buff.name + "AreaEffect", "");
+            var area_effect = library.CopyAndAdd<BlueprintAbilityAreaEffect>("7ced0efa297bd5142ab749f6e33b112b", buff.name + prefix + "Effect", "");
             area_effect.Size = radius;
             area_effect.ReplaceComponent<AbilityAreaEffectBuff>(a => { a.Buff = buff; a.Condition = conditions; });
 
-            var area_buff = library.CopyAndAdd<BlueprintBuff>("c96380f6dcac83c45acdb698ae70ffc4", "Area" + buff.name, "");
+            var area_buff = library.CopyAndAdd<BlueprintBuff>("c96380f6dcac83c45acdb698ae70ffc4", prefix + buff.name, "");
             area_buff.ReplaceComponent<AddAreaEffect>(a => a.AreaEffect = area_effect);
             return area_buff;
+        }
+
+
+        static public BlueprintBuff createBuffAreaEffect(BlueprintBuff buff, Feet radius, ConditionsChecker conditions)
+        {
+            return createBuffAreaEffect(buff, radius, conditions, "Area");
         }
 
 
@@ -2015,7 +2021,7 @@ namespace CallOfTheWild
             progression.SetName(spellbook.Name);
 
             List<BlueprintFeature> sp_features = new List<BlueprintFeature>();
-            if (spellbook.Spontaneous && spellbook != Occultist.reliquarian_spellbook)
+            if (spellbook.Spontaneous && spellbook.GetComponent<SpellbookMechanics.OccultistSpellbook>() == null)
             {
                 sp_features = CreateSpontaneousDivineCasterSpellSelectionForMt(name, @class, spellbook);
             }
@@ -2329,17 +2335,27 @@ namespace CallOfTheWild
                 var feature = Common.ActivatableAbilityToFeature(toggle, true, Helpers.MergeIds("c9ca89f32d3b4e1b8add1bae23c73f4b", feat.AssetGuid));
                 feat.AddComponent(Common.createAddFeatureIfHasFact(tactical_leader_tactician, feature));
                 feat.AddComponent(Common.createAddFeatureIfHasFact(Archetypes.DrillSergeant.tactician, feature));
+                feat.AddComponent(Common.createAddFeatureIfHasFact(Warpriest.battle_tactician, feature));
+                Archetypes.PackRager.addToRagingTactician(feat);
             }
             teamwork_feat.AllFeatures = teamwork_feat.AllFeatures.AddToArray(feat);
             Hunter.hunter_teamwork_feat.AllFeatures = teamwork_feat.AllFeatures;
             Archetypes.DrillSergeant.tactician.AllFeatures = teamwork_feat.AllFeatures;
             Archetypes.DrillSergeant.greater_tactician.AllFeatures = teamwork_feat.AllFeatures;
             Archetypes.DrillSergeant.master_tactician.AllFeatures = teamwork_feat.AllFeatures;
+            Warpriest.battle_tactician.AllFeatures = teamwork_feat.AllFeatures;
+            Warpriest.greater_battle_tactician.AllFeatures = teamwork_feat.AllFeatures;
+            Warpriest.master_battle_tactician.AllFeatures = teamwork_feat.AllFeatures;
+            Archetypes.DrillSergeant.greater_tactician.AllFeatures = teamwork_feat.AllFeatures;
+            Archetypes.DrillSergeant.master_tactician.AllFeatures = teamwork_feat.AllFeatures;
             teamwork_feat_vanguard.AllFeatures = teamwork_feat_vanguard.AllFeatures.AddToArray(feat);
             Summoner.teamwork_feat.AllFeatures = Summoner.teamwork_feat.AllFeatures.AddToArray(feat);
 
             VindicativeBastard.teamwork_feat.AllFeatures = VindicativeBastard.teamwork_feat.AllFeatures.AddToArray(feat);
-
+            if (feat.Groups.Contains(FeatureGroup.CombatFeat))
+            {
+                Archetypes.PackRager.teamwork_feat.AllFeatures = Archetypes.PackRager.teamwork_feat.AllFeatures.AddToArray(feat);
+            }
             //update vanguard, forester and drill sergeant features
 
             var abilities_to_update = new Dictionary<string, BlueprintAbility>();
@@ -2718,7 +2734,7 @@ namespace CallOfTheWild
         }
 
 
-        public static BlueprintAbility[] CreateAbilityVariantsReplace(BlueprintAbility parent, string prefix, Action<BlueprintAbility> action, bool as_duplicates,
+        public static BlueprintAbility[] CreateAbilityVariantsReplace(BlueprintAbility parent, string prefix, Action<BlueprintAbility, BlueprintAbility> action, bool as_duplicates,
                                                                       params BlueprintAbility[] variants)
         {
             var clear_variants = variants.Distinct().ToArray();
@@ -2726,7 +2742,6 @@ namespace CallOfTheWild
 
             foreach (var v in clear_variants)
             {
-
                 var variants_comp = v.GetComponent<AbilityVariants>();
 
                 if (variants_comp != null)
@@ -2747,7 +2762,7 @@ namespace CallOfTheWild
                     }
                     if (action != null)
                     {
-                        action(processed_spell);
+                        action(processed_spell, v);
                     }
                     processed_spell.Parent = parent;
                     processed_spell.RemoveComponents<SpellListComponent>();
@@ -2818,6 +2833,17 @@ namespace CallOfTheWild
             v.Value = value;
             v.multiplier = multiplier;
             return v;
+        }
+
+
+        static public SavingThrowBonusAgainstAbilityType createSavingThrowBonusAgainstAbilityType(int base_value, ContextValue bonus, AbilityType ability_type, ModifierDescriptor descriptor)
+        {
+            var b = Helpers.Create<SavingThrowBonusAgainstAbilityType>();
+            b.Value = base_value;
+            b.Bonus = bonus;
+            b.AbilityType = ability_type;
+            b.ModifierDescriptor = descriptor;
+            return b;
         }
 
 
@@ -3042,6 +3068,18 @@ namespace CallOfTheWild
         }
 
 
+        static public NewMechanics.EnchantmentMechanics.BuffContextEnchantShield createBuffContextEnchantShield(ContextValue value,
+                                                                                                   bool only_non_magical, bool lock_slot,
+                                                                                                   params BlueprintArmorEnchantment[] enchantments)
+        {
+            var b = Helpers.Create<NewMechanics.EnchantmentMechanics.BuffContextEnchantShield>();
+            b.lock_slot = lock_slot;
+            b.enchantments = enchantments;
+            b.value = value;
+            return b;
+        }
+
+
         static public AbilityCasterMainWeaponCheck createAbilityCasterMainWeaponCheck(params WeaponCategory[] category)
         {
             var a = Helpers.Create<AbilityCasterMainWeaponCheck>();
@@ -3159,6 +3197,19 @@ namespace CallOfTheWild
                                                                                                                                        bool lock_slot, params BlueprintArmorEnchantment[] enchants)
         {
             var b = Helpers.Create<NewMechanics.EnchantmentMechanics.BuffRemainingGroupSizetEnchantArmor>();
+            b.enchantments = enchants;
+            b.group = group;
+            b.lock_slot = lock_slot;
+            b.only_non_magical = only_non_magical;
+            b.shift_with_current_enchantment = true;
+            return b;
+        }
+
+
+        static public NewMechanics.EnchantmentMechanics.BuffRemainingGroupSizetEnchantShield createBuffRemainingGroupSizetEnchantShield(ActivatableAbilityGroup group, bool only_non_magical,
+                                                                                                                               bool lock_slot, params BlueprintArmorEnchantment[] enchants)
+        {
+            var b = Helpers.Create<NewMechanics.EnchantmentMechanics.BuffRemainingGroupSizetEnchantShield>();
             b.enchantments = enchants;
             b.group = group;
             b.lock_slot = lock_slot;
@@ -4670,6 +4721,62 @@ namespace CallOfTheWild
             return createEnchantmentAbility(name_prefix, display_name, description, icon, new BlueprintBuff[] { base_buff }, enchantment, group_size, group, alignment);
         }
 
+
+        static public BlueprintActivatableAbility createShieldEnchantmentAbility(string name_prefix, string display_name, string description, UnityEngine.Sprite icon, BlueprintBuff[] base_buffs,
+                                                           BlueprintArmorEnchantment enchantment, int group_size, ActivatableAbilityGroup group,
+                                                           AlignmentMaskType alignment = AlignmentMaskType.Any)
+        {
+            //create buff
+            //create activatable ability that gives buff
+            //on main buff in activate add corresponding enchantment
+            //create feature that gives activatable ability
+
+            BlueprintBuff buff;
+
+            buff = Helpers.CreateBuff(name_prefix + "Buff",
+                                            display_name,
+                                            description,
+                                            "",
+                                            icon,
+                                            null,
+                                            Common.createBuffContextEnchantShield(Common.createSimpleContextValue(1), false, true,
+                                                                                            (BlueprintArmorEnchantment)enchantment)
+                                                                                            );
+            
+            buff.SetBuffFlags(BuffFlags.HiddenInUi);
+            var switch_buff = Helpers.CreateBuff(name_prefix + "SwitchBuff",
+                                  display_name,
+                                  description,
+                                  "",
+                                  icon,
+                                  null);
+            switch_buff.SetBuffFlags(BuffFlags.HiddenInUi);
+
+            foreach (var bb in base_buffs)
+            {
+                Common.addContextActionApplyBuffOnFactsToActivatedAbilityBuffNoRemove(bb, buff, switch_buff);
+            }
+
+            var ability = Helpers.CreateActivatableAbility(name_prefix + "ToggleAbility",
+                                                                        display_name,
+                                                                        description,
+                                                                        "",
+                                                                        icon,
+                                                                        switch_buff,
+                                                                        AbilityActivationType.Immediately,
+                                                                        CommandType.Free,
+                                                                        null
+                                                                        );
+            ability.WeightInGroup = group_size;
+            ability.Group = group;
+            ability.DeactivateImmediately = true;
+
+            if (alignment != AlignmentMaskType.Any)
+            {
+                ability.AddComponent(Helpers.Create<NewMechanics.ActivatableAbilityAlignmentRestriction>(c => c.Alignment = alignment));
+            }
+            return ability;
+        }
 
         static public BlueprintActivatableAbility createEnchantmentAbility(string name_prefix, string display_name, string description, UnityEngine.Sprite icon, BlueprintBuff[] base_buffs,
                                                                    BlueprintItemEnchantment enchantment, int group_size, ActivatableAbilityGroup group,

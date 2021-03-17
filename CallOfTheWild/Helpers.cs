@@ -68,6 +68,7 @@ using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 using Kingmaker.RuleSystem.Rules;
 using Kingmaker.Blueprints.Items.Components;
 using Kingmaker.Designers.Mechanics.Prerequisites;
+using System.IO;
 
 namespace CallOfTheWild
 {
@@ -1346,7 +1347,8 @@ namespace CallOfTheWild
                 Oracle.fighter_feat?.AssetGuid,
                 "c5158a6622d0b694a99efb1d0025d2c1", //combat trick
                 Antipaladin.insinuator_bonus_feat?.AssetGuid,
-                Occultist.bonus_feats?.AssetGuid
+                Occultist.bonus_feats?.AssetGuid,
+                Archetypes.Swashbuckler.swashbucler_combat_trick?.AssetGuid
             };
 
             if (RogueTalents.feat != null)
@@ -1598,6 +1600,22 @@ namespace CallOfTheWild
             result.AsChild = asChild;
             result.Permanent = permanent;
             return result;
+        }
+
+
+        public static string[] readStringsfromFile(string filename, char delimeter)
+        {
+
+            var lines = File.ReadLines(filename).ToArray();
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var pos = lines[i].IndexOf(delimeter);
+                if (pos > 0)
+                {
+                    lines[i] = lines[i].Substring(0, pos);
+                }
+            }
+            return lines;
         }
 
         public static BlueprintComponent CreateAddMechanics(this AddMechanicsFeature.MechanicsFeatureType mechanicsKind)
@@ -1903,6 +1921,21 @@ namespace CallOfTheWild
             a.Class = classes[0];
             a.AdditionalClasses = classes.Skip(1).ToArray();
             a.Archetypes = new BlueprintArchetype[0];
+            return a;
+        }
+
+
+        public static NewMechanics.AddFeatureOnClassLevelIfHasFact CreateAddFeatureOnClassLevelIfHasFact(this BlueprintFeature feat, int level, BlueprintCharacterClass[] classes, BlueprintUnitFact fact, bool before = false)
+        {
+            var a = Create<NewMechanics.AddFeatureOnClassLevelIfHasFact>();
+            a.name = $"AddFeatureOnClassLevelIfHasFact${feat.name}";
+            a.Level = level;
+            a.BeforeThisLevel = before;
+            a.Feature = feat;
+            a.Class = classes[0];
+            a.AdditionalClasses = classes.Skip(1).ToArray();
+            a.Archetypes = new BlueprintArchetype[0];
+            a.fact = fact;
             return a;
         }
 
@@ -2643,6 +2676,50 @@ namespace CallOfTheWild
             {
                 ss.BlueprintParameterVariants = ss.BlueprintParameterVariants.AddToArray(spell);
             }
+        }
+
+
+        public static bool isValidSpellUser(UnitDescriptor unit, bool arcane, bool divine, bool psychic, bool spell_like)
+        {
+            foreach (ClassData classData in unit.Progression.Classes)
+            {
+
+                BlueprintSpellbook spellbook = classData.Spellbook;
+                if (spellbook == null)
+                {
+                    continue;
+                }
+
+                if (spellbook.IsArcane && arcane)
+                {
+                    return true;
+                }
+
+                if (!spellbook.IsArcane && !spellbook.IsAlchemist && spellbook.GetComponent<SpellbookMechanics.PsychicSpellbook>() == null && divine)
+                {
+                    return true;
+                }
+
+                if (spellbook.GetComponent<SpellbookMechanics.PsychicSpellbook>() != null && psychic)
+                {
+                    return true;
+                }
+            }
+
+            if (!spell_like)
+            {
+                return false;
+            }
+
+            foreach (var a in unit.Abilities)
+            {
+                if (a.Blueprint.Type == AbilityType.SpellLike || a.Blueprint.Type == AbilityType.Spell)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static void AddSpellAndScroll(this BlueprintAbility spell, String scrollIconId, int variant = 0)

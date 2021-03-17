@@ -106,6 +106,7 @@ namespace CallOfTheWild
         static public BlueprintFeature winter_witch_cantrips;
         static public BlueprintFeature ice_magic;
 
+        static public Dictionary<string, Common.ExtraSpellList> patron_spelllist_map = new Dictionary<string, Common.ExtraSpellList>();
         static public BlueprintArchetype havocker;
         static public BlueprintFeatureSelection patron_element;
         static public BlueprintFeatureSelection infusion;
@@ -127,7 +128,7 @@ namespace CallOfTheWild
         internal static void createWitchClass()
         {
             var wizard_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("ba34257984f4c41408ce1dc2004e342e");
-            var sorceror_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("b3a505fb61437dc4097f43c3f8f9a4cf");
+            var sorcerer_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("b3a505fb61437dc4097f43c3f8f9a4cf");
 
             witch_class = Helpers.Create<BlueprintCharacterClass>();
             witch_class.name = "WitcherClass";
@@ -137,7 +138,7 @@ namespace CallOfTheWild
 
             witch_class.LocalizedName = Helpers.CreateString("Witch.Name", "Witch");
             witch_class.LocalizedDescription = Helpers.CreateString("Witch.Description",
-                "Some gain power through study, some through devotion, others through blood, but the witch gains power from her communion with the unknown.Generally feared and misunderstood, the witch draws her magic from a pact made with an otherworldly power.Communing with that source, using her familiar as a conduit, the witch gains not only a host of spells, but a number of strange abilities known as hexes.As a witch grows in power, she might learn about the source of her magic, but some remain blissfully unaware.Some are even afraid of that source, fearful of what it might be or where its true purposes lie.\n"
+                "Some gain power through study, some through devotion, others through blood, but the witch gains power from her communion with the unknown.Generally feared and misunderstood, the witch draws her magic from a pact made with an otherworldly power. Communing with that source, using her familiar as a conduit, the witch gains not only a host of spells, but a number of strange abilities known as hexes.As a witch grows in power, she might learn about the source of her magic, but some remain blissfully unaware.Some are even afraid of that source, fearful of what it might be or where its true purposes lie.\n"
                 + "Role: While many witches are recluses, living on the edge of civilization, some live within society, openly or in hiding. The blend of witches’ spells makes them adept at filling a number of different roles, from seer to healer, and their hexes grant them a number of abilities that are useful in a fight.Some witches travel about, seeking greater knowledge and better understanding of the mysterious powers that guide them."
                 );
             witch_class.m_Icon = wizard_class.Icon;
@@ -156,13 +157,13 @@ namespace CallOfTheWild
             witch_class.IsDivineCaster = false;
             witch_class.IsArcaneCaster = true;
             witch_class.StartingGold = wizard_class.StartingGold;
-            witch_class.PrimaryColor = sorceror_class.PrimaryColor;
-            witch_class.SecondaryColor = sorceror_class.SecondaryColor;
+            witch_class.PrimaryColor = sorcerer_class.PrimaryColor;
+            witch_class.SecondaryColor = sorcerer_class.SecondaryColor;
             witch_class.RecommendedAttributes = wizard_class.RecommendedAttributes;
             witch_class.NotRecommendedAttributes = wizard_class.NotRecommendedAttributes;
-            witch_class.EquipmentEntities = sorceror_class.EquipmentEntities;
-            witch_class.MaleEquipmentEntities = sorceror_class.MaleEquipmentEntities;
-            witch_class.FemaleEquipmentEntities = sorceror_class.FemaleEquipmentEntities;
+            witch_class.EquipmentEntities = sorcerer_class.EquipmentEntities;
+            witch_class.MaleEquipmentEntities = sorcerer_class.MaleEquipmentEntities;
+            witch_class.FemaleEquipmentEntities = sorcerer_class.FemaleEquipmentEntities;
             witch_class.ComponentsArray = wizard_class.ComponentsArray;
             witch_class.StartingItems = new Kingmaker.Blueprints.Items.BlueprintItem[] {library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("511c97c1ea111444aa186b1a58496664"), //crossbow
                                                                                         library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("ada85dae8d12eda4bbe6747bb8b5883c"), // quarterstaff
@@ -690,7 +691,7 @@ namespace CallOfTheWild
                                                                                                                                                       library.Get<BlueprintAbility>("1f173a16120359e41a20fc75bb53d449")
                                                                                                                                                      )
                                                                                                               );
-
+            witch_spontaneous_cure.RemoveComponents<Prerequisite>();
             var icon = library.Get<BlueprintAbility>("f6f95242abdfac346befd6f4f6222140").Icon;
             var empatic_healing = Helpers.CreateFeature("HedgeWitchEmpaticHealingFeature",
                                                         "Empatic Healing",
@@ -1178,6 +1179,17 @@ namespace CallOfTheWild
                                          "7ef49f184922063499b8f1346fb7f521", //seamantle
                                          "87a29febd010993419f2a4a9bee11cfc" //mindblank communal
                                          ),
+               createWitchPatronFeature("Shadow", "4a479a6ef8564e9eb7e1dd0d97660804", "bce2135f54da44c78582f5fca82e4555", false,
+                                         "f001c73999fb5a543a199f890108d936", //vanish
+                                         "89940cde01689fb46946b2f8cd7b66b7", //invisibility
+                                         NewSpells.barrow_haze.AssetGuid,
+                                         NewSpells.shadow_conjuration.AssetGuid,
+                                         "237427308e48c3341b3d532b9d3a001f", //shadow evocation
+                                         "1f2e6019ece86d64baa5effa15e81ecc", //phantasmal putrefaction
+                                         NewSpells.shadow_conjuration_greater.AssetGuid,
+                                         "3c4a2d4181482e84d9cd752ef8edc3b6", //shadow evocation greater
+                                         NewSpells.shades.AssetGuid
+                                        ),
                 createWitchPatronFeature("Spring", "fa8155faef214069a896e65a9073458c", "e9f7f92bf7724ec788fcd6374bfd2e82", false,
                                          "f3c0b267dd17a2a45a40805e31fe3cd1", //feather step
                                          "6c7467f0344004d48848a43d8c078bf8", //sickening entanglement
@@ -1188,6 +1200,17 @@ namespace CallOfTheWild
                                          "26be70c4664d07446bdfe83504c1d757", //change staff
                                          "7cfbefe0931257344b2cb7ddc4cdff6f", //stormbolts
                                          NewSpells.time_stop.AssetGuid
+                                        ),
+              createWitchPatronFeature("Storms", "2d167ffdc10d4adfad18d6277017e26b", "baf0b28b8f374fea992774af85188175", false,
+                                         NewSpells.obscuring_mist.AssetGuid,
+                                         NewSpells.aggressive_thundercloud.AssetGuid,
+                                         "2a9ef0e0b5822a24d88b16673a267456", //call lightning
+                                         "fcb028205a71ee64d98175ff39a0abf9", //ice storm
+                                         "d5a36a7ee8177be4f848b953d1c53c84", //call lightning storm
+                                         NewSpells.wind_walk.AssetGuid,
+                                         NewSpells.scouring_winds.AssetGuid,
+                                         "7cfbefe0931257344b2cb7ddc4cdff6f", //strom bolts
+                                         NewSpells.winds_of_vengeance.AssetGuid
                                         ),
                 createWitchPatronFeature("Strength", "6f859ba938f94132920eeb63a8c9af50", "8125ff1edafc4c5489ad2739a85d5386", false,
                                          "9d5d2d3ffdd73c648af3eb3e585b1113", //divine favor
@@ -1609,11 +1632,12 @@ namespace CallOfTheWild
                                              UnitCommand.CommandType.Standard,
                                              AbilityRange.Touch,
                                              Helpers.roundsPerLevelDuration,
-                                             Helpers.savingThrowNone,
+                                             HarmlessSaves.HarmlessSaves.will_harmless,
                                              Helpers.CreateRunActions(apply_buff),
                                              Helpers.CreateSpellComponent(SpellSchool.Enchantment),
                                              Helpers.CreateSpellDescriptor(SpellDescriptor.Compulsion | SpellDescriptor.MindAffecting),
-                                             Helpers.CreateContextRankConfig()
+                                             Helpers.CreateContextRankConfig(),
+                                             Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                              );
 
 
@@ -1662,6 +1686,7 @@ namespace CallOfTheWild
         static BlueprintFeature createWitchPatronFeature(string name, string spell_list_guid, string feature_guid, bool is_winter, params string[] spell_guids)
         {
             var extra_spell_list = new Common.ExtraSpellList(spell_guids);
+            patron_spelllist_map.Add(name, extra_spell_list);
             var learn_spell_list = extra_spell_list.createLearnSpellList("Witch" + name + "PatronSpellList", spell_list_guid, witch_class);
             string description = name + " patron grants witch the following spells: ";
             for (int i = 1; i <= 9; i++)

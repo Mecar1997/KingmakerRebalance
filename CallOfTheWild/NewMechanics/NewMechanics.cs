@@ -230,7 +230,6 @@ namespace CallOfTheWild
                     this.Owner.Resources.Spend((BlueprintScriptableObject)this.resource, 1);
                 }
                 caster_level_increase = -1;
-
             }
         }
 
@@ -416,40 +415,6 @@ namespace CallOfTheWild
                 {
                     this.Buff.Remove();
                 }
-            }
-        }
-
-
-        [ComponentName("Replace ray/touch attack with //half// your Charisma, Wisdom or Intellect modifiers, if they are higher than your martial stats")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class AttackStatReplacementForCasters : RuleInitiatorLogicComponent<RuleCalculateAttackBonusWithoutTarget>
-        {
-            public WeaponCategory[] categories;
-
-            public override void OnEventAboutToTrigger(RuleCalculateAttackBonusWithoutTarget evt)
-            {
-                var chosenStat = StatType.Charisma;
-
-                if (Owner.Stats.GetStat(StatType.Wisdom) >= Owner.Stats.GetStat(chosenStat))
-                {
-                    chosenStat = StatType.Wisdom;
-                }
-                if (Owner.Stats.GetStat(StatType.Intelligence) >= Owner.Stats.GetStat(chosenStat))
-                {
-                    chosenStat = StatType.Intelligence;
-                }
-
-                ModifiableValueAttributeStat stat1 = this.Owner.Stats.GetStat(evt.AttackBonusStat) as ModifiableValueAttributeStat;
-                ModifiableValueAttributeStat stat2 = this.Owner.Stats.GetStat(chosenStat) as ModifiableValueAttributeStat;
-                bool flag = stat2 != null && stat1 != null && (stat2.Bonus) >= stat1.Bonus;
-                if (flag && (categories.Contains(evt.Weapon.Blueprint.Category) || categories.Empty()))
-                {
-                    evt.AttackBonusStat = chosenStat;
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleCalculateAttackBonusWithoutTarget evt)
-            {
             }
         }
 
@@ -2399,7 +2364,7 @@ namespace CallOfTheWild
 
         [AllowedOn(typeof(BlueprintAbility))]
         [AllowMultipleComponents]
-        public class AbilityCasterHasSHield : BlueprintComponent, IAbilityCasterChecker
+        public class AbilityCasterHasShield : BlueprintComponent, IAbilityCasterChecker
         {
             public bool CorrectCaster(UnitEntityData caster)
             {
@@ -3873,50 +3838,89 @@ namespace CallOfTheWild
             }
         }
 
+        [AllowedOn(typeof(BlueprintAbility))]
+        [AllowMultipleComponents]
+        public class AbilityCasterMainWeaponIsMeleeUnlessHasFact : BlueprintComponent, IAbilityCasterChecker
+        {
+            public BlueprintFeature ranged_allowed_fact;
+
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                var weapon = caster.Body.PrimaryHand.MaybeWeapon;
+                if (weapon == null)
+                {
+                    return true;
+                }
+
+                if (weapon.Blueprint.IsMelee || (ranged_allowed_fact != null && caster.Descriptor.HasFact(ranged_allowed_fact)))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            public string GetReason()
+            {
+                return (string)LocalizedTexts.Instance.Reasons.SpecificWeaponRequired;
+            }
+        }
+
+
+        [ComponentName("BuffMechanics/Extra Attack")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class BuffExtraAttackIfHasFact : RuleInitiatorLogicComponent<RuleCalculateAttacksCount>
+        {
+            public BlueprintUnitFact fact;
+            public int num_attacks = 1;
+            
+
+            public override void OnEventAboutToTrigger(RuleCalculateAttacksCount evt)
+            {
+                if (evt.Initiator.Descriptor.HasFact(fact))
+                {
+                    evt.AddExtraAttacks(this.num_attacks, false, (ItemEntity)null);
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleCalculateAttacksCount evt)
+            {
+            }
+        }
+
+
+        public class AbilityCasterHpCondition : BlueprintComponent, IAbilityCasterChecker
+        {
+            public int CurrentHPLessThan;
+            public bool Inverted;
+
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                if (caster == null)
+                    return false;
+                if ((int)((ModifiableValue)caster.Stats.HitPoints) - caster.Damage < this.CurrentHPLessThan)
+                    return !this.Inverted;
+                return this.Inverted;
+            }
+
+            public string GetReason()
+            {
+                return "No enough HP";
+            }
+        }
+
+
         public class DamageBonusAgainstSpellUser : RuleInitiatorLogicComponent<RuleCalculateDamage>
         {
             public ContextValue Value;
             public bool arcane = true;
             public bool divine = true;
+            public bool psychic = true;
             public bool spell_like = true;
-
 
             private bool isValidTarget(UnitDescriptor unit)
             {
-                foreach (ClassData classData in unit.Progression.Classes)
-                {
-                   
-                    BlueprintSpellbook spellbook = classData.Spellbook;
-                    if (spellbook == null)
-                    {
-                        continue;
-                    }
-
-                    if (spellbook.IsArcane && arcane)
-                    {
-                        return true;
-                    }
-
-                    if (!spellbook.IsArcane && !spellbook.IsAlchemist && divine)
-                    {
-                        return true;
-                    }
-                }
-
-                if (!spell_like)
-                {
-                    return false;
-                }
-
-                foreach (var a in unit.Abilities)
-                {
-                    if (a.Blueprint.Type == AbilityType.SpellLike || a.Blueprint.Type == AbilityType.Spell)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return Helpers.isValidSpellUser(unit, arcane, divine, psychic, spell_like);
             }
 
             public override void OnEventAboutToTrigger(RuleCalculateDamage evt)
@@ -4916,6 +4920,21 @@ namespace CallOfTheWild
         }
 
 
+        public class ActivatableAbilityHasShieldRestriction : ActivatableAbilityRestriction
+        {
+            public override bool IsAvailable()
+            {
+                if (Owner.Body.IsPolymorphed)
+                {
+                    return true;
+                }
+
+                return Owner.Body?.SecondaryHand?.MaybeShield != null;
+
+            }
+        }
+
+
         public class ActivatableAbilityLightOrNoArmor : ActivatableAbilityRestriction
         {
             public override bool IsAvailable()
@@ -5485,6 +5504,36 @@ namespace CallOfTheWild
         }
 
 
+        [AllowMultipleComponents]
+        [ComponentName("Predicates/Target point has no units around")]
+        [AllowedOn(typeof(BlueprintAbility))]
+        public class AbilityTargetPointHasNoUnitsAround : BlueprintComponent, IAbilityTargetChecker
+        {
+            public float distance;
+            public bool CanTarget(UnitEntityData caster, TargetWrapper target)
+            {
+                return !GameHelper.GetTargetsAround(target.Point, (float)this.distance, true, false).Where(u => u != caster).Any();             
+            }
+        }
+
+
+        [AllowedOn(typeof(BlueprintAbility))]
+        [AllowMultipleComponents]
+        public class AbilityCasterNoUnitsAround : BlueprintComponent, IAbilityCasterChecker
+        {
+            public float distance;
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                return !GameHelper.GetTargetsAround(caster.Position, (float)this.distance, true, false).Where(u => u != caster).Any();
+            }
+
+            public string GetReason()
+            {
+                return "There are units around";
+            }
+        }
+
+
         [AllowedOn(typeof(BlueprintAbility))]
         [AllowMultipleComponents]
         public class AbilityCasterPrimaryHandFree : BlueprintComponent, IAbilityCasterChecker
@@ -5841,6 +5890,26 @@ namespace CallOfTheWild
                 {
                     (this.Fact as IFactContextOwner).RunActionInContext(action, evt.Target);
                 }
+            }
+        }
+
+
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class IgnoreDamageReductionIfTargetHasFact : RuleInitiatorLogicComponent<RuleDealDamage>
+        {
+            public BlueprintBuff fact;
+            public bool from_caster;
+
+            public override void OnEventAboutToTrigger(RuleDealDamage evt)
+            {
+                if (evt.Target.Descriptor.Buffs.Enumerable.Any(b => b.Blueprint == fact && (!from_caster || b.MaybeContext?.MaybeCaster == evt.Initiator)))
+                {
+                    evt.IgnoreDamageReduction = true;
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleDealDamage evt)
+            {
             }
         }
 
@@ -7523,7 +7592,7 @@ namespace CallOfTheWild
             [SerializeField]
             [ShowIf("IsSavingThrow")]
             [EnumFlagsAsButtons(ColumnCount = 4)]
-            ModifyD20WithActions.InnerSavingThrowType m_SavingThrowType = ModifyD20WithActions.InnerSavingThrowType.All;
+            public ModifyD20WithActions.InnerSavingThrowType m_SavingThrowType = ModifyD20WithActions.InnerSavingThrowType.All;
             [EnumFlagsAsButtons(ColumnCount = 3)]
             public ModifyD20WithActions.RuleType Rule;
             public bool Replace;
@@ -7803,7 +7872,7 @@ namespace CallOfTheWild
             }
 
             [Flags]
-            private enum InnerSavingThrowType
+            public enum InnerSavingThrowType
             {
                 Fortitude = 1,
                 Reflex = 2,
@@ -8608,6 +8677,19 @@ namespace CallOfTheWild
         }
 
 
+
+        public class FlurryOfBlowsRestriciton : ActivatableAbilityRestriction
+        {
+
+            public override bool IsAvailable()
+            {
+                return !HoldingItemsMechanics.Helpers.hasShield2(this.Owner.Body.SecondaryHand)
+                                    && (!this.Owner.Body.Armor.HasArmor || !this.Owner.Body.Armor.Armor.Blueprint.IsArmor)
+                                    && (this.Owner.Body.PrimaryHand.Weapon.Blueprint.IsMonk || FeralCombatTraining.checkHasFeralCombat(this.Owner.Unit, this.Owner.Body.PrimaryHand.Weapon, allow_crusaders_flurry: true));
+            }
+        }
+
+
         public class PrimaryHandMeleeWeaponRestriction : ActivatableAbilityRestriction
         {
             public override bool IsAvailable()
@@ -9235,9 +9317,9 @@ namespace CallOfTheWild
 
 
         [AllowedOn(typeof(BlueprintBuff))]
-        public class MaximumWeaponDamageOnCriticalHit : BuffLogic, ITargetRulebookHandler<RuleCalculateDamage>, IRulebookHandler<RuleCalculateDamage>, ITargetRulebookSubscriber
+        public class MaximumWeaponDamageOnCriticalHit : RuleInitiatorLogicComponent<RuleCalculateDamage>
         {
-            public void OnEventAboutToTrigger(RuleCalculateDamage evt)
+            public override void OnEventAboutToTrigger(RuleCalculateDamage evt)
             {
                 var weapon_damage = evt.DamageBundle?.WeaponDamage;
                 if (weapon_damage == null)
@@ -9253,7 +9335,7 @@ namespace CallOfTheWild
                 weapon_damage.Maximized = true;
             }
 
-            public void OnEventDidTrigger(RuleCalculateDamage evt)
+            public override void OnEventDidTrigger(RuleCalculateDamage evt)
             {
             }
         }
@@ -10885,8 +10967,6 @@ namespace CallOfTheWild
         }
 
 
-
-
         class ContextValueWithLimitProperty : PropertyValueGetter
         {
             public ContextRankConfig base_value;
@@ -10968,6 +11048,105 @@ namespace CallOfTheWild
                 BaseDamage damage = this.Owner.Body.SecondaryHand.MaybeWeapon.Blueprint.DamageType.GetDamageDescriptor(this.RendDamage, (int)((double)this.Owner.Stats.Strength.Bonus * 1.5)).CreateDamage();
                 Game.Instance.Rulebook.TriggerEvent<RuleDealDamage>(new RuleDealDamage(this.Owner.Unit, evt.Target, (DamageBundle)damage));
                 can_rend = false;
+            }
+        }
+
+
+        public class ReceiveExtraDamageOnWeaponAttack : RuleTargetLogicComponent<RulePrepareDamage>
+        {
+            public DamageDescription damage;
+
+            public override void OnEventAboutToTrigger(RulePrepareDamage evt)
+            {
+                if (evt.DamageBundle.Weapon == null)
+                {
+                    return;
+                }
+            
+                BaseDamage damage = this.damage.CreateDamage();
+                evt.DamageBundle.Add(damage);
+            }
+
+            public override void OnEventDidTrigger(RulePrepareDamage evt)
+            {
+            }
+        }
+
+
+        [AllowMultipleComponents]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class AddFeatureOnClassLevelIfHasFact : OwnedGameLogicComponent<UnitDescriptor>, IUnitGainLevelHandler, IGlobalSubscriber
+        {
+            public BlueprintCharacterClass Class;
+            public int Level;
+            public BlueprintFeature Feature;
+            public bool BeforeThisLevel;
+            public BlueprintCharacterClass[] AdditionalClasses;
+            public BlueprintArchetype[] Archetypes;
+            public BlueprintUnitFact fact;
+            [JsonProperty]
+            private Fact m_AppliedFact;
+
+            public override void OnFactActivate()
+            {
+                this.Apply();
+            }
+
+            public override void OnFactDeactivate()
+            {
+                this.Owner.RemoveFact(this.m_AppliedFact);
+            }
+
+            public void HandleUnitGainLevel(UnitDescriptor unit, BlueprintCharacterClass @class)
+            {
+                this.Apply();
+            }
+
+            private void Apply()
+            {
+                if (this.IsFeatureShouldBeApplied())
+                {
+                    if (this.m_AppliedFact != null)
+                        return;
+                    this.m_AppliedFact = this.Owner.AddFact((BlueprintUnitFact)this.Feature, (MechanicsContext)null, (FeatureParam)null);
+                }
+                else
+                {
+                    if (this.m_AppliedFact == null)
+                        return;
+                    this.Owner.RemoveFact(this.m_AppliedFact);
+                    this.m_AppliedFact = (Fact)null;
+                }
+            }
+
+            private bool IsFeatureShouldBeApplied()
+            {
+                if (!this.Owner.HasFact(fact))
+                {
+                    return false;
+                }
+                int classLevel = ReplaceCasterLevelOfAbility.CalculateClassLevel(this.Class, this.AdditionalClasses, this.Owner, this.Archetypes);
+                if (this.BeforeThisLevel && classLevel >= this.Level)
+                    return false;
+                if (classLevel < this.Level && this.BeforeThisLevel)
+                    return true;
+                if (classLevel >= this.Level)
+                    return !this.BeforeThisLevel;
+                return false;
+            }
+
+            public override void PostLoad()
+            {
+                base.PostLoad();
+                int num = this.m_AppliedFact == null ? 0 : (!this.Owner.HasFact(this.m_AppliedFact) ? 1 : 0);
+                if (num != 0)
+                {
+                    this.m_AppliedFact.Dispose();
+                    this.m_AppliedFact = (Fact)null;
+                }
+                if (num == 0 || !((IList<BlueprintFeatureBase>)BlueprintRoot.Instance.PlayerUpgradeActions.AllowedForRestoreFeatures).HasItem<BlueprintFeatureBase>((BlueprintFeatureBase)this.Feature))
+                    return;
+                this.Apply();
             }
         }
     }

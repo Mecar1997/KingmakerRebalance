@@ -50,12 +50,11 @@ namespace CallOfTheWild
 
         public BlueprintFeature createTerror()
         {
-
             var effect = Helpers.CreateConditional(Helpers.Create<ContextConditionHitDice>(c => { c.HitDice = 0; c.AddSharedValue = true; c.SharedValue = AbilitySharedValue.StatBonus; }),
                                                    Helpers.Create<AooMechanics.ContextActionProvokeAttackOfOpportunityFromAnyoneExceptCaster>(a => a.max_units = 100));
             var ability = Helpers.CreateAbility(prefix + "TerrorAbility",
                                                 "Terror",
-                                                "As a standard action, you can make a melee touch attack that causes a creature to be assailed by nightmares only it can see. The creature provokes an attack of opportunity from all your allies. Creatures with more Hit Dice than your occultist level are unaffected. This is a mind-affecting fear effect.",
+                                                "As a standard action, by spending one point of mental focus, you can make a melee touch attack that causes a creature to be assailed by nightmares only it can see. The creature provokes an attack of opportunity from all your allies. Creatures with more Hit Dice than your occultist level are unaffected. This is a mind-affecting fear effect.",
                                                 "",
                                                 Helpers.GetIcon("d2aeac47450c76347aebbc02e4f463e0"), //fear
                                                 AbilityType.Supernatural,
@@ -66,7 +65,9 @@ namespace CallOfTheWild
                                                 Helpers.CreateRunActions(effect),
                                                 Helpers.CreateSpellDescriptor(SpellDescriptor.MindAffecting),
                                                 Helpers.CreateDeliverTouch(),
-                                                Common.createAbilitySpawnFx("49a8069c238b1a8429f2123654d4f45b", anchor: AbilitySpawnFxAnchor.SelectedTarget)
+                                                Common.createAbilitySpawnFx("49a8069c238b1a8429f2123654d4f45b", anchor: AbilitySpawnFxAnchor.SelectedTarget),
+                                                createClassScalingConfig(),
+                                                Helpers.CreateCalculateSharedValue(Helpers.CreateContextDiceValue(DiceType.Zero, 0, Helpers.CreateContextValue(AbilityRankType.Default)), AbilitySharedValue.StatBonus)                                               
                                                 );
             ability.setMiscAbilityParametersTouchHarmful();
             var ability_cast = Helpers.CreateTouchSpellCast(ability, resource);
@@ -153,7 +154,7 @@ namespace CallOfTheWild
                                        + "You must be at least 7th level to select this focus power."
                                        );
 
-            var ability2 = library.CopyAndAdd(ability, ability.Name + "Others", "");
+            var ability2 = library.CopyAndAdd(ability, ability.name + "Others", "");
             ability2.Range = AbilityRange.Touch;
             ability2.setMiscAbilityParametersTouchFriendly();
             ability2.ReplaceComponent<AbilityResourceLogic>(a => a.Amount = 2);

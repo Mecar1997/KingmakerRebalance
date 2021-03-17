@@ -39,6 +39,7 @@ namespace CallOfTheWild
             public bool remove_solo_tactics_from_sacred_huntsmaster { get; }
             public bool update_kineticist_archetypes { get; }
             public bool balance_fixes { get; }
+            public bool balance_fixes_monk_ac { get; }
             internal Settings()
             {
 
@@ -62,6 +63,7 @@ namespace CallOfTheWild
                     remove_solo_tactics_from_sacred_huntsmaster = (bool)jo["remove_solo_tactics_from_sacred_huntsmaster"];
                     update_kineticist_archetypes = (bool)jo["update_kineticist_archetypes"];
                     balance_fixes = (bool)jo["balance_fixes"];
+                    balance_fixes_monk_ac = (bool)jo["balance_fixes_monk_ac"];
                 }
             }
         }
@@ -130,7 +132,7 @@ namespace CallOfTheWild
                 try
                 {
                     Main.DebugLog("Loading Call of the Wild");
-
+                    CallOfTheWild.HarmlessSaves.HarmlessSaves.init();
                     CallOfTheWild.LoadIcons.Image2Sprite.icons_folder = UnityModManager.modsPath + @"/CallOfTheWild/Icons/";
 #if DEBUG                
                     bool allow_guid_generation = true;
@@ -176,7 +178,7 @@ namespace CallOfTheWild
                     CallOfTheWild.Rebalance.removePowerOfWyrmsBuffImmunity();
                     CallOfTheWild.Rebalance.fixWidomCognatogen();
                     CallOfTheWild.Rebalance.fixTransmutionSchoolPhysicalEnhancement();
-                    CallOfTheWild.Rebalance.fixSylvanSorcerorAnimalCompanion();
+                    CallOfTheWild.Rebalance.fixSylvanSorcererAnimalCompanion();
                     CallOfTheWild.Rebalance.fixLegendaryProportionsAC();
                     CallOfTheWild.Rebalance.removeJudgement19FormSHandMS();
                     CallOfTheWild.Rebalance.fixDomains();
@@ -201,14 +203,20 @@ namespace CallOfTheWild
                     CallOfTheWild.Rebalance.fixJudgments();
                     CallOfTheWild.Rebalance.fixMissingSlamProficiency();
                     CallOfTheWild.Rebalance.fixStalwartDefender();
-                    CallOfTheWild.BalanceFixes.load("979f63920af22344d81da5099c9ec32e", //death domain bleed
-                                                    "ad9a6a7ee08ce73469dff703a17f8934", //medium elemental burn
-                                                    "7d0f50b37b787ea4d8f5a09dd2f30a4e" //mirrow bow damage 
-                                                     );
+                    CallOfTheWild.Rebalance.fixChannelEnergyHeal();
+                    CallOfTheWild.Rebalance.condenseMonkUnarmedDamage();
+                    if (settings.balance_fixes)
+                    {
+                        Main.logger.Log("Applying balance changes");
+                        CallOfTheWild.BalanceFixes.load("979f63920af22344d81da5099c9ec32e", //death domain bleed
+                                                        "ad9a6a7ee08ce73469dff703a17f8934", //medium elemental burn
+                                                        "7d0f50b37b787ea4d8f5a09dd2f30a4e" //mirrow bow damage 
+                                                         );
+                    }
                     CallOfTheWild.Rebalance.fixDomainSpells();
                     CallOfTheWild.Rebalance.fixAnimalCompanionFeats();
                     CallOfTheWild.Rebalance.fixAlchemistFastBombs();
-                    CallOfTheWild.Rebalance.fixChannelEnergyHeal();
+                    
                     CallOfTheWild.Rebalance.fixElementalWallsToAvoidDealingDamageTwiceOnTheFirstRound();
                     CallOfTheWild.Rebalance.fixArchonsAuraToEffectOnlyEnemiesAndDescription();
                     CallOfTheWild.Rebalance.fixDruidDomainUi();
@@ -249,6 +257,7 @@ namespace CallOfTheWild
                     CallOfTheWild.Rebalance.fixArchetypeKineticistGatherPowerWithShield();
                     CallOfTheWild.Rebalance.fixSuppressBuffs();
                     CallOfTheWild.Rebalance.fixBlindingRay();
+                    CallOfTheWild.Rebalance.fixElementalArcana();
 
                     if (settings.secondary_rake_attacks)
                     {
@@ -269,6 +278,9 @@ namespace CallOfTheWild
                     CallOfTheWild.MetamagicFeats.load();
                     CallOfTheWild.Rebalance.fixUniversalistMetamagicMastery();
                     CallOfTheWild.NewSpells.load();
+                    CallOfTheWild.Rebalance.fixFlameWardenSpells();
+                    CallOfTheWild.NewFeats.createDisruptive();
+                    CallOfTheWild.NewFeats.createSpellbreaker();
                     CallOfTheWild.NewRagePowers.load();   
                     CallOfTheWild.Subdomains.load();
                     CallOfTheWild.NewFeats.createDeityFavoredWeapon();
@@ -297,6 +309,7 @@ namespace CallOfTheWild
                     CallOfTheWild.Inquisitions.create(inquisitions_test);
                     CallOfTheWild.Hunter.createHunterClass();
                     CallOfTheWild.VindicativeBastard.createClass();
+                    CallOfTheWild.Archetypes.IroranPaladin.create();
                     CallOfTheWild.Antipaladin.creatAntipaldinClass();
                     if (settings.sacred_huntsmaster_animal_focus)
                     {
@@ -308,27 +321,36 @@ namespace CallOfTheWild
                     CallOfTheWild.Skald.createSkaldClass();
                     CallOfTheWild.Archetypes.RavenerHunter.create();
                     CallOfTheWild.Oracle.createOracleClass();
+                    
                     CallOfTheWild.Investigator.createInvestigatorClass();
                     CallOfTheWild.Spiritualist.createSpiritualistClass();
 
                     CallOfTheWild.Archetypes.StormDruid.create();
                     CallOfTheWild.Shaman.createShamanClass();
+                    CallOfTheWild.Archetypes.DraconicDruid.create();
                     CallOfTheWild.Psychic.createPsychicClass();
                     CallOfTheWild.Occultist.createOccultistClass();
+                    CallOfTheWild.Archetypes.RelicHunter.create();
                     CallOfTheWild.Bloodrager.createBloodragerClass();
-                    CallOfTheWild.BloodlinesFix.load();
-                    CallOfTheWild.Archetypes.PrimalSorcerer.create();
+                    CallOfTheWild.BloodlinesFix.load(); //sorcerer archetypes with alternate bloodlines are created inside
+
                     CallOfTheWild.Arcanist.createArcanistClass();                    
                     CallOfTheWild.Archetypes.DrillSergeant.create();
-                    CallOfTheWild.SharedSpells.load();
-                    
-
+                    CallOfTheWild.Archetypes.PackRager.create();
+                    CallOfTheWild.Archetypes.DivineScourge.create();
+                                      
                     CallOfTheWild.Archetypes.DivineTracker.create(); // blessings will be filled in warpriest part
                     CallOfTheWild.Warpriest.createWarpriestClass();
 
+                    CallOfTheWild.SharedSpells.load();
+
                     CallOfTheWild.Archetypes.MindBlade.create();
+                    CallOfTheWild.Archetypes.Skirnir.create();
                     CallOfTheWild.Archetypes.Evangelist.create();
-                    
+                    CallOfTheWild.Archetypes.ArrowsongMinstrel.create();
+                    CallOfTheWild.Archetypes.DirgeBard.create();
+                    CallOfTheWild.Archetypes.CourtBard.create();
+                    //Note: archetypes with new performances should be created before NewFeats to allow discordant voice to pick relevant toggles
                     CallOfTheWild.NewFeats.load();
                     CallOfTheWild.MagusArcana.load();
                     CallOfTheWild.SkillUnlocks.load();
@@ -343,14 +365,15 @@ namespace CallOfTheWild
                         CallOfTheWild.AdvancedFighterOptions.prepareLookupData();
                     }
                     CallOfTheWild.MonkKiPowers.load();
-                    CallOfTheWild.Archetypes.ArrowsongMinstrel.create();
-                    CallOfTheWild.Archetypes.DirgeBard.create();
+
                     CallOfTheWild.Archetypes.SpiritWhisperer.create();
                     CallOfTheWild.Archetypes.UntamedRager.create();
                     CallOfTheWild.Archetypes.NatureBondedMagus.create();                    
                     CallOfTheWild.Archetypes.ZenArcher.create();
+                    CallOfTheWild.Archetypes.SageCounselor.create();
                     CallOfTheWild.Archetypes.SanctifiedSlayer.create();
                     CallOfTheWild.Archetypes.LoreWarden.create();
+                    CallOfTheWild.Archetypes.DervishOfDawn.create();
                     CallOfTheWild.Archetypes.Preservationist.create();
                     CallOfTheWild.Archetypes.NatureFang.create();
                     CallOfTheWild.RogueTalents.load();
@@ -358,6 +381,7 @@ namespace CallOfTheWild
                     CallOfTheWild.Archetypes.Ninja.create();
                     CallOfTheWild.Archetypes.Seeker.create();
                     CallOfTheWild.Archetypes.Bloodhunter.create();
+                    CallOfTheWild.Archetypes.StygianSlayer.create();
 
                     CallOfTheWild.Hinterlander.createHinterlanderClass();
                     CallOfTheWild.HolyVindicator.createHolyVindicatorClass();
@@ -372,6 +396,7 @@ namespace CallOfTheWild
                     CallOfTheWild.Archetypes.BeastkinBerserker.create();
                     CallOfTheWild.Archetypes.GraveWarden.create();
                     CallOfTheWild.Archetypes.Toxicant.create();
+                    CallOfTheWild.Archetypes.Swashbuckler.create();
                     CallOfTheWild.MysticTheurgeFix.load();
                     CallOfTheWild.AnimalCompanionLevelUp.AddPet_TryLevelUpPet_Patch.init();
 
@@ -379,6 +404,7 @@ namespace CallOfTheWild
                     CallOfTheWild.NewFeats.createPreferredSpell();
                     CallOfTheWild.MetamagicFeats.setMetamagicFlags();
                     CallOfTheWild.NewSpells.fixShadowSpells();
+                    CallOfTheWild.Archetypes.PactWizard.create();
                     CallOfTheWild.CleanUp.run();
                     CallOfTheWild.DismissSpells.Dismiss.create();
                     CallOfTheWild.Rebalance.fixTristianAngelBuff();

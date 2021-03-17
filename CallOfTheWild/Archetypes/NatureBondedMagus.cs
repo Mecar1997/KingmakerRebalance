@@ -198,7 +198,7 @@ namespace CallOfTheWild.Archetypes
 
             for (int i = 1; i <= 6; i++)
             {
-                natural_magic[i - 1] = Helpers.CreateFeatureSelection($"NatureBondedMagusNaturalMagic{i}FeatureSelection",
+                natural_magic[i-1] = Helpers.CreateFeatureSelection($"NatureBondedMagusNaturalMagic{i}FeatureSelection",
                                                 "Natural Magic " + $"(Level {i})",
                                                 "A nature - bonded magus adds one 1st - level spell from the druid spell list to his spellbook. Each time a nature - bonded magus gains the ability to cast a new level of spells, he can add one spell of that level from the druid spell list to his spellbook.",
                                                 "",

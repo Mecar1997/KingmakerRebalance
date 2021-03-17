@@ -100,8 +100,15 @@ namespace CallOfTheWild
 
         static public BlueprintBuff eldritch_scion_buff;
         static public BlueprintFeature mystical_focus;
+        static public BlueprintFeatureSelection eldritch_scion_bloodrager_bloodlines;
+
+        static public BlueprintArchetype primalist;
+        static public BlueprintFeatureSelection primalist_rage_power_selection;
+        static public BlueprintFeature fake_barbarian;
+        static public BlueprintFeatureSelection primalist_bloodline_selection; 
 
         static public Dictionary<BlueprintProgression, BlueprintProgression> bloodrager_eldritch_scion_bloodlines_map = new Dictionary<BlueprintProgression, BlueprintProgression>();
+        static public Dictionary<BlueprintProgression, BlueprintProgression> bloodrager_primalist_bloodlines_map = new Dictionary<BlueprintProgression, BlueprintProgression>();
         public class BloodlineInfo
         {
             public BlueprintProgression progression;
@@ -127,8 +134,8 @@ namespace CallOfTheWild
 
             bloodrager_class.LocalizedName = Helpers.CreateString("Bloodrager.Name", "Bloodrager");
             bloodrager_class.LocalizedDescription = Helpers.CreateString("Bloodrager.Description",
-                                                                         "While many ferocious combatants can tap into a deep reservoir of buried rage, bloodragers have an intrinsic power that seethes within.Like sorcerers, bloodragers’ veins surge with arcane power.While sorcerers use this power for spellcasting, bloodragers enter an altered state in which their bloodline becomes manifest, where the echoes of their strange ancestry lash out with devastating power. In these states, bloodragers can cast some arcane spells instinctively.The bloodrager’s magic is as fast, violent, and seemingly unstoppable as their physical prowess.\n"
-                                                                         + "Role: Masters of the battlefield, bloodragers unleash fearful carnage on their enemies using their bloodlines and combat prowess.The bloodrager’s place is on the front lines, right in his enemies’ faces, supplying tremendous martial force bolstered by a trace of arcane magic."
+                                                                         "While many ferocious combatants can tap into a deep reservoir of buried rage, bloodragers have an intrinsic power that seethes within.Like sorcerers, bloodragers’ veins surge with arcane power.While sorcerers use this power for spellcasting, bloodragers enter an altered state in which their bloodline becomes manifest, where the echoes of their strange ancestry lash out with devastating power. In these states, bloodragers can cast some arcane spells instinctively. The bloodrager’s magic is as fast, violent, and seemingly unstoppable as their physical prowess.\n"
+                                                                         + "Role: Masters of the battlefield, bloodragers unleash fearful carnage on their enemies using their bloodlines and combat prowess. The bloodrager’s place is on the front lines, right in his enemies’ faces, supplying tremendous martial force bolstered by a trace of arcane magic."
                                                                          );
             bloodrager_class.m_Icon = barbarian_class.Icon;
             bloodrager_class.SkillPoints = barbarian_class.SkillPoints;
@@ -161,10 +168,93 @@ namespace CallOfTheWild
             createSteelblood();
             createUrbanBloodrager();
             createBloodConduit();
-            bloodrager_class.Archetypes = new BlueprintArchetype[] { metamagic_rager_archetype, spelleater_archetype, steelblood_archetype, urban_bloodrager, blood_conduit }; //steelblood, spell eater, metamagic rager
+            createPrimalist();
+            bloodrager_class.Archetypes = new BlueprintArchetype[] { metamagic_rager_archetype, spelleater_archetype, steelblood_archetype, urban_bloodrager, blood_conduit, primalist }; //steelblood, spell eater, metamagic rager
             Helpers.RegisterClass(bloodrager_class);
             createRageCastingFeat();
             addToPrestigeClasses();
+        }
+
+
+        static void createPrimalist()
+        {
+            var barbarian = library.Get<BlueprintCharacterClass>("f7d7eb166b3dd594fb330d085df41853");
+
+            primalist = Helpers.Create<BlueprintArchetype>(a =>
+            {
+                a.name = "PrimalistArchetype";
+                a.LocalizedName = Helpers.CreateString($"{a.name}.Name", "Primalist");
+                a.LocalizedDescription = Helpers.CreateString($"{a.name}.Description", "While bloodrage powers come from the very essence of a bloodrager’s being and are often strict and immutable, some bloodragers tap into ancient traditions and primitive wisdom to enhance their rages with something more primal. The primalist mixes his bloodline with more traditional rage powers.");
+            });
+            Helpers.SetField(primalist, "m_ParentClass", bloodrager_class);
+            library.AddAsset(primalist, "");
+
+            primalist_rage_power_selection = library.CopyAndAdd<BlueprintFeatureSelection>("28710502f46848d48b3f0d6132817c4e", "RagePowerPrimalistSelection", "");
+            primalist_rage_power_selection.SetNameDescription("Primal Choices",
+                                                              "At 4th level and every 4 levels thereafter, a primalist receives a barbarian rage power instead of a bloodline power. His bloodrager level acts as his barbarian level when determining the effect of those bloodrage powers and any prerequisites. Any other prerequisites for a rage power must be met before a primalist can choose it. This ability does not count as the rage power class feature for determining feat prerequisites and other requirements.");
+
+            ClassToProgression.addClassToBuff(bloodrager_class, new BlueprintArchetype[] { primalist }, bloodrage_buff, barbarian);
+            foreach (var f in primalist_rage_power_selection.AllFeatures)
+            {
+                ClassToProgression.addClassToFeat(bloodrager_class, new BlueprintArchetype[] { primalist }, ClassToProgression.DomainSpellsType.NoSpells, f, barbarian);
+            }
+
+            fake_barbarian = Helpers.CreateFeature("PrimalistFakeBarbarianLevels",
+                                                   "",
+                                                   "",
+                                                   "",
+                                                   null,
+                                                   FeatureGroup.None,
+                                                   Common.createClassLevelsForPrerequisites(barbarian, bloodrager_class)
+                                                   );
+            fake_barbarian.HideInCharacterSheetAndLevelUp = true;
+            fake_barbarian.HideInUI = true;
+
+            primalist_bloodline_selection = library.CopyAndAdd(bloodline_selection, "PrimalistBloodlineSelection", "");
+
+            for (int i = 0; i < primalist_bloodline_selection.AllFeatures.Length; i++)
+            {
+                var f = library.CopyAndAdd(primalist_bloodline_selection.AllFeatures[i] as BlueprintProgression, "Primalist" + primalist_bloodline_selection.AllFeatures[i].name, "");
+                primalist_bloodline_selection.AllFeatures[i].AddComponent(Helpers.Create<NewMechanics.FeatureReplacement>(a => a.replacement_feature = f));
+
+                var powers = new BlueprintFeatureBase[]
+                {
+                    f.LevelEntries[0].Features[0],
+                    f.LevelEntries[1].Features[0],
+                    f.LevelEntries[3].Features[0],
+                    f.LevelEntries[5].Features[0],
+                    f.LevelEntries[7].Features[0],
+                    f.LevelEntries[8].Features[0],
+                };
+                var spells = new BlueprintFeatureBase[]
+                {
+                    f.LevelEntries[2].Features[0],
+                    f.LevelEntries[4].Features[0],
+                    f.LevelEntries[6].Features[0],
+                    f.LevelEntries[7].Features[1],
+                };
+                f.LevelEntries = new LevelEntry[] {Helpers.LevelEntry(1, powers[0]),
+                                                   Helpers.LevelEntry(7, spells[0]),
+                                                   Helpers.LevelEntry(10, spells[1]),
+                                                   Helpers.LevelEntry(13, spells[2]),
+                                                   Helpers.LevelEntry(16, spells[3])
+                                                  };
+                bloodrager_primalist_bloodlines_map[primalist_bloodline_selection.AllFeatures[i] as BlueprintProgression] = f;
+                primalist_bloodline_selection.AllFeatures[i] = f;
+                primalist_bloodline_selection.Features[i] = f;
+            }
+
+            bloodline_selection.AddComponent(Helpers.Create<NewMechanics.FeatureReplacement>(f => f.replacement_feature = primalist_bloodline_selection));
+
+            primalist.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, primalist_bloodline_selection, fake_barbarian),
+                                                       Helpers.LevelEntry(4, primalist_rage_power_selection),
+                                                       Helpers.LevelEntry(8, primalist_rage_power_selection),
+                                                       Helpers.LevelEntry(12, primalist_rage_power_selection),
+                                                       Helpers.LevelEntry(16, primalist_rage_power_selection),
+                                                       Helpers.LevelEntry(20, primalist_rage_power_selection)
+                                                       };
+            primalist.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, bloodline_selection) };
+            bloodrager_progression.UIDeterminatorsGroup = bloodrager_progression.UIDeterminatorsGroup.AddToArray(primalist_bloodline_selection);
         }
 
 
@@ -177,6 +267,7 @@ namespace CallOfTheWild
                 a.LocalizedName = Helpers.CreateString($"{a.name}.Name", "Eldritch Scion (Bloodrager)");
                 a.LocalizedDescription = Helpers.CreateString($"{a.name}.Description", eldritch_scion.Description);
             });
+            eldritch_scion_bloodrager.AddSkillPoints = 1;
             Helpers.SetField(eldritch_scion_bloodrager, "m_ParentClass", eldritch_scion.GetParentClass());
             library.AddAsset(eldritch_scion_bloodrager, "");
             eldritch_scion_bloodrager.GetParentClass().Archetypes = eldritch_scion_bloodrager.GetParentClass().Archetypes.AddToArray(eldritch_scion_bloodrager);
@@ -221,8 +312,8 @@ namespace CallOfTheWild
 
             mystical_focus = Common.AbilityToFeature(mystical_focus_ability, false);
 
-            var eldritch_scion_bloodrager_bloodlines = library.CopyAndAdd(bloodline_selection, "EldritchScionBloodlineSelection", "");
-            eldritch_scion_bloodrager_bloodlines.SetDescription("An eldritch scion gains a bloodrager bloodline.The bloodline is selected at 1st level, and this choice cannot be changed. An eldritch scion’s effective bloodrager level for his bloodline abilities is equal to his eldritch scion level. He does not gain any bonus feats and he gains bonus spells from his bloodline 3 levels earlier than a bloodrager would. To use any ability that normally functions when in a bloodrage, an eldritch scion must spend a point from his eldritch pool (see mystical focus ability).");
+            eldritch_scion_bloodrager_bloodlines = library.CopyAndAdd(bloodline_selection, "EldritchScionBloodlineSelection", "");
+            eldritch_scion_bloodrager_bloodlines.SetDescription("An eldritch scion gains a bloodrager bloodline. The bloodline is selected at 1st level, and this choice cannot be changed. An eldritch scion’s effective bloodrager level for his bloodline abilities is equal to his eldritch scion level. He does not gain any bonus feats and he gains bonus spells from his bloodline 3 levels earlier than a bloodrager would. To use any ability that normally functions when in a bloodrage, an eldritch scion must spend a point from his eldritch pool (see mystical focus ability).");
 
             for (int i = 0; i < eldritch_scion_bloodrager_bloodlines.AllFeatures.Length; i++)
             {
@@ -260,7 +351,6 @@ namespace CallOfTheWild
                 bloodrager_eldritch_scion_bloodlines_map.Add(eldritch_scion_bloodrager_bloodlines.AllFeatures[i] as BlueprintProgression, f);
                 eldritch_scion_bloodrager_bloodlines.AllFeatures[i] = f;
                 eldritch_scion_bloodrager_bloodlines.Features[i] = f;
-
             }
 
             bloodline_selection.AddComponent(Helpers.Create<NewMechanics.FeatureReplacement>(f => f.replacement_feature = eldritch_scion_bloodrager_bloodlines));
@@ -313,6 +403,10 @@ namespace CallOfTheWild
 
             var dd_breath = library.Get<BlueprintFeature>("0aadb51129cb0c147b5d2464c0db10b3");
             ClassToProgression.addClassToFeat(eldritch_scion_bloodrager.GetParentClass(), new BlueprintArchetype[] { eldritch_scion_bloodrager }, ClassToProgression.DomainSpellsType.NoSpells, dd_breath, bloodrager_class);
+
+            //also fix original eldritch scion (cabalist) not to get greater spell acess
+            eldritch_scion.RemoveFeatures = eldritch_scion.RemoveFeatures.AddToArray(Helpers.LevelEntry(19, library.Get<BlueprintFeature>("de18c849c41dbfa44801d812376c707d")));
+            eldritch_scion.ReplaceSpellbook.RemoveComponents<AddCustomSpells>();
         }
 
 
@@ -759,9 +853,9 @@ namespace CallOfTheWild
             bloodline_selection = Helpers.CreateFeatureSelection("BloodragerBloodlineSelection",
                                                                      "Bloodline",
                                                                      "Each bloodrager has a source of magic somewhere in his heritage that empowers his bloodrages, bonus feats, and bonu spells. Sometimes this source reflects a distant blood relationship to a powerful being, or is due to an extreme event involving such a creature somewhere in his family’s past. Regardless of the source, this influence manifests in a number of ways. A bloodrager must pick one bloodline upon taking his first level of bloodrager. Once made, this choice cannot be changed.\n"
-                                                                     + "When choosing a bloodline, the bloodrager’s alignment doesn’t restrict his choices.A good bloodrager could come from an abyssal bloodline, a celestial bloodline could beget an evil bloodrager generations later, a bloodrager from an infernal bloodline could be chaotic, and so on.Though his bloodline empowers him, it doesn’t dictate or limit his thoughts and behavior.\n"
-                                                                     + "The bloodrager gains bloodline powers at 1st level, 4th level, and every 4 levels thereafter.The bloodline powers a bloodrager gains are described in his chosen bloodline.For all spell - like bloodline powers, treat the character’s bloodrager level as the caster level.\n"
-                                                                     + "At 6th level and every 3 levels thereafter, a bloodrager receives one bonus feat chosen from a list specific to each bloodline.The bloodrager must meet the prerequisites for these bonus feats.At 7th, 10th, 13th, and 16th levels, a bloodrager learns an additional spell derived from his bloodline.\n"
+                                                                     + "When choosing a bloodline, the bloodrager’s alignment doesn’t restrict his choices.A good bloodrager could come from an abyssal bloodline, a celestial bloodline could beget an evil bloodrager generations later, a bloodrager from an infernal bloodline could be chaotic, and so on. Though his bloodline empowers him, it doesn’t dictate or limit his thoughts and behavior.\n"
+                                                                     + "The bloodrager gains bloodline powers at 1st level, 4th level, and every 4 levels thereafter. The bloodline powers a bloodrager gains are described in his chosen bloodline.For all spell - like bloodline powers, treat the character’s bloodrager level as the caster level.\n"
+                                                                     + "At 6th level and every 3 levels thereafter, a bloodrager receives one bonus feat chosen from a list specific to each bloodline. The bloodrager must meet the prerequisites for these bonus feats.At 7th, 10th, 13th, and 16th levels, a bloodrager learns an additional spell derived from his bloodline.\n"
                                                                      + "When a bloodrager enters a bloodrage, he often takes on a physical transformation influenced by his bloodline and powered by the magic that roils within him. Unless otherwise specified, he gains the effects of his bloodline powers only while in a bloodrage; once the bloodrage ends, all powers from his bloodline immediately cease, and any physical changes the bloodrager underwent revert, restoring him to normal.",
                                                                      "6eed80b1bfa9425e90c5981fb87dedf2",
                                                                      null,
@@ -812,7 +906,7 @@ namespace CallOfTheWild
                                                               "Generations ago, a demon spread its filth into the essence of your bloodline. While it doesn’t manifest in all of your kin, in those moments when you’re bloodraging, you embody its terrifying presence.\n"
                                                                + "Bonus Feats: Cleave, Great Fortitude, Improved Bull Rush, Improved Sunder, Intimidating Prowess, Power Attack, Toughness.\n"
                                                                + "Bonus Spells: Ray of enfeeblement(7th), bull’s strength(10th), rage(13th), stoneskin(16th).",
-                                                              library.Get<BlueprintProgression>("d3a4cb7be97a6694290f0dcfbd147113").Icon, //sorceror bloodline
+                                                              library.Get<BlueprintProgression>("d3a4cb7be97a6694290f0dcfbd147113").Icon, //sorcerer bloodline
                                                               new BlueprintAbility[] { ray_of_enfeeblement, bulls_strength, rage, stoneskin },
                                                               new BlueprintFeature[] { cleave, great_fortitude, improved_bull_rush, improved_sunder, intimidating_prowess, power_attack, toughness },
                                                               new BlueprintFeature[] { claws, demonic_bulk, demonic_resistances, abyssal_bloodrage, demonic_aura, demonic_immunities },
@@ -957,12 +1051,12 @@ namespace CallOfTheWild
                 var abyssal_strength = library.Get<BlueprintFeature>("489c8c4a53a111d4094d239054b26e32");
                 var buff = Helpers.CreateBuff("BloodragerAbyssalBloodlineAbyssalBloodrage",
                                                     "Abyssal Bloodrage",
-                                                    "At 12th level, while bloodraging,  you receive +2 morale bonus to Strength, but the penalty to AC becomes –4 instead of –2. At 16th level, this bonus increases by 4 instead. At 20th level, it increases by 6 instead.",
+                                                    "At 12th level, while bloodraging,  you receive +2 bonus to Strength, but the penalty to AC increases by –2. At 16th level, the strength bonus increases by 4 instead. At 20th level, it increases by 6 instead.",
                                                     "9f57b65210a34032aef5da55a7b7fa18",
                                                     abyssal_strength.Icon,
                                                     null,
                                                     Helpers.CreateAddStatBonus(StatType.AC, -2, ModifierDescriptor.UntypedStackable),
-                                                    Helpers.CreateAddContextStatBonus(StatType.Strength, ModifierDescriptor.Morale, rankType: AbilityRankType.StatBonus),
+                                                    Helpers.CreateAddContextStatBonus(StatType.Strength, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
                                                     Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel,
                                                     ContextRankProgression.Custom, AbilityRankType.StatBonus,
                                                     classes: getBloodragerArray(),
@@ -1050,7 +1144,7 @@ namespace CallOfTheWild
 
             static void createDemonicImmunities()
             {
-                demonic_immunities = library.CopyAndAdd<BlueprintFeature>("5c1c2ed7fe5f99649ab00605610b775b", //from sorceror bloodline
+                demonic_immunities = library.CopyAndAdd<BlueprintFeature>("5c1c2ed7fe5f99649ab00605610b775b", //from sorcerer bloodline
                                                                                             "BloodragerAbyssalBloodlineDemonicImmunitiesFeature",
                                                                                             "9f558f25202e451eb5b29c721a906a97");
                 var resistances = demonic_immunities.GetComponents<Kingmaker.UnitLogic.FactLogic.AddDamageResistanceEnergy>().ToArray();
@@ -1419,7 +1513,7 @@ namespace CallOfTheWild
 
             static void createAscension()
             {
-                ascension = library.CopyAndAdd<BlueprintFeature>("d85e0396d8f68e047b7b67a1290f8dbc", prefix + "AscensionFeature", "17f896a2f8164f26a6c04523aa7ce708"); //from sorceror bloodline
+                ascension = library.CopyAndAdd<BlueprintFeature>("d85e0396d8f68e047b7b67a1290f8dbc", prefix + "AscensionFeature", "17f896a2f8164f26a6c04523aa7ce708"); //from sorcerer bloodline
                 ascension.SetDescription("At 20th level, you become infused with the power of the heavens. You gain immunity to acid, cold, and petrification. You also gain resistance 10 to electricity and fire, as well as a +4 racial bonus on saving throws against poison. You have these benefits constantly, even while not bloodraging.");
             }
 
@@ -2129,7 +2223,7 @@ namespace CallOfTheWild
                 reroll.RollsAmount = 1;
                 reroll.TakeBest = true;
                 reroll.RerollOnlyIfFailed = true;
-                reroll.actions = Helpers.CreateActionList();
+                reroll.actions = Helpers.CreateActionList(Helpers.Create<NewMechanics.ContextActionSpendResource>(c => c.resource = resource));
                 reroll.required_resource = resource;
 
                 var certain_strike_buff = Helpers.CreateBuff(prefix + "CertainStrikeBuff",
@@ -2295,7 +2389,7 @@ namespace CallOfTheWild
                 public BlueprintProgression sorc_progression;
 
                 public DraconicBloodlineData(UnityEngine.Sprite bloodline_icon, BlueprintBuff wings, BlueprintAbility breath_weapon, BlueprintBuff dragon_form, DamageEnergyType energy,
-                                      BlueprintWeaponEnchantment enchantment, BlueprintFeature power_of_the_wyrms_feat, BlueprintProgression sorceror_progression, string bloodline_name, string breath_string)
+                                      BlueprintWeaponEnchantment enchantment, BlueprintFeature power_of_the_wyrms_feat, BlueprintProgression sorcerer_progression, string bloodline_name, string breath_string)
                 {
                     icon = bloodline_icon;
                     wings_prototype = wings;
@@ -2308,7 +2402,7 @@ namespace CallOfTheWild
                     energy_string = energy.ToString().ToLower();
                     breath_area_string = breath_string;
                     power_of_the_wyrms = power_of_the_wyrms_feat;
-                    sorc_progression = sorceror_progression;
+                    sorc_progression = sorcerer_progression;
 
                     switch (energy)
                     {
@@ -2489,6 +2583,7 @@ namespace CallOfTheWild
                 var claw_buff1 = library.CopyAndAdd<BlueprintBuff>("fe712a5237d918342936c0761cdc2d3e", prefix + "Claw1Buff", ""); //from sorcerer bloodline
                 claw_buff1.ReplaceComponent<Kingmaker.Designers.Mechanics.Buffs.EmptyHandWeaponOverride>(Common.createEmptyHandWeaponOverride(claw1d6));
                 var claw_buff2 = library.CopyAndAdd<BlueprintBuff>("4824413d436653546931aaddb9e71280", prefix + "Claw2Buff", ""); //from sorcerer bloodline
+                claw_buff2.ReplaceComponent<Kingmaker.Designers.Mechanics.Buffs.EmptyHandWeaponOverride>(Common.createEmptyHandWeaponOverride(claw1d6));
                 var claw_buff3 = library.CopyAndAdd<BlueprintBuff>("4824413d436653546931aaddb9e71280", prefix + "Claw3Buff", "");
                 claw_buff3.ReplaceComponent<Kingmaker.Designers.Mechanics.Buffs.EmptyHandWeaponOverride>(Common.createEmptyHandWeaponOverride(claw1d8));
                 List<BlueprintBuff> claws4_buff_energy = new List<BlueprintBuff>();
@@ -2809,7 +2904,7 @@ namespace CallOfTheWild
                 for (int i = 0; i < bloodlines.Length; i++)
                 {
                     var progression = createBloodragerBloodline("Elemental",
-                                                                  "The power of the elements resides in you, and at times you can hardly control its fury.This influence comes either from an elemental outsider in your family history or from a moment when you or your ancestors were exposed to a powerful elemental force or cataclysm.\n"
+                                                                  "The power of the elements resides in you, and at times you can hardly control its fury. This influence comes either from an elemental outsider in your family history or from a moment when you or your ancestors were exposed to a powerful elemental force or cataclysm.\n"
                                                                    + "Cleave, Dodge, Great Fortitude, Improved Initiative, Lightning Reflexes, Power Attack, Weapon Focus.\n"
                                                                    + $"Bonus Spells: {bloodlines[i].spell1.Name} (7th), {bloodlines[i].spell2.Name.ToLower()} (10th), protection from energy (13th), elemental body I (16th).",
                                                                   bloodlines[i].icon,
@@ -2929,7 +3024,7 @@ namespace CallOfTheWild
                 {
                     var buff = Helpers.CreateBuff(b.prefix + "ElementalMovementBuff",
                                                     "Elemental Movement",
-                                                    b.elemental_movement_prototype.Description.Replace("15", "12"),
+                                                    b.elemental_movement_prototype.Description.Replace("15", "8"),
                                                     "",
                                                     b.elemental_movement_prototype.Icon,
                                                     null,
@@ -3294,6 +3389,7 @@ namespace CallOfTheWild
 
             }
             spell_eating = library.CopyAndAdd<BlueprintFeature>("5e4620cea099c9345a9207c11d7bc916", "SpellEaterSpellEating", "");
+            spell_eating.RemoveComponents<Prerequisite>();
             spell_eating.SetName("Spell Eating");
             spell_eating.SetIcon(renewed_vigor.Icon);
             spell_eating.SetDescription("At 5th level, a spelleater can consume spell slots for an extra dose of healing. As a swift action, the spelleater can consume one unused bloodrager spell slot to heal 1d8 damage for each level of the spell slot consumed.");
@@ -3434,6 +3530,7 @@ namespace CallOfTheWild
                 blood_deflection_spells[i] = spell;
             }
             blood_deflection = library.CopyAndAdd<BlueprintFeature>("5e4620cea099c9345a9207c11d7bc916", "SteelbloodBloodDeflection", "");
+            blood_deflection.RemoveComponents<Prerequisite>();
             blood_deflection.SetName("Blood Deflection");
             blood_deflection.SetIcon(shield_of_faith.Icon);
             blood_deflection.SetDescription($"At 7th level, as a standard action a steelblood can sacrifice a bloodrager spell slot to gain a deflection bonus to AC equal to {base_ac} + the level of the spell sacrificed. The deflection bonus lasts one minute. Duration of the effect is increased by 1 minute at level 10 and every 3 levels thereafter. If the steelblood gains an increase to damage reduction from a bloodline he is considered to have an effective damage reduction of 0, and the increase is added to the duration of the effect.");
@@ -3534,7 +3631,7 @@ namespace CallOfTheWild
         {
             urban_bloodrage = Helpers.CreateFeature("UrbanBloodragerControlledBloodrageFeature",
                                                     "Controlled Bloodrage",
-                                                    "When an urban bloodrager rages, she does not gain the normal benefits.Instead, she can apply a + 4 morale bonus to her Constitution, Dexterity, or Strength.This bonus increases to + 6 when she gains greater bloodrage and to + 8 when she gains mighty bloodrage.When using a controlled bloodrage, an urban bloodrager gains no bonus on Will saves, takes no penalties to AC, and can still use Charisma -, Dexterity -, and Intelligence-based skills. A controlled bloodrage still counts as a bloodrage for the purposes of any spells, feats, and other effects.",
+                                                    "When an urban bloodrager rages, she does not gain the normal benefits.Instead, she can apply a + 4 morale bonus to her Constitution, Dexterity, or Strength. This bonus increases to + 6 when she gains greater bloodrage and to + 8 when she gains mighty bloodrage.When using a controlled bloodrage, an urban bloodrager gains no bonus on Will saves, takes no penalties to AC, and can still use Charisma -, Dexterity -, and Intelligence-based skills. A controlled bloodrage still counts as a bloodrage for the purposes of any spells, feats, and other effects.",
                                                     "",
                                                     Helpers.GetIcon("c7773d1b408fea24dbbb0f7bf3eb864e"),
                                                     FeatureGroup.None,

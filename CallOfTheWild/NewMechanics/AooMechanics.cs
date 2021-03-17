@@ -3,6 +3,7 @@ using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Facts;
+using Kingmaker.Controllers;
 using Kingmaker.Controllers.Combat;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.ElementsSystem;
@@ -12,6 +13,7 @@ using Kingmaker.Items.Slots;
 using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules;
+using Kingmaker.RuleSystem.Rules.Abilities;
 using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Commands;
@@ -28,7 +30,24 @@ using System.Threading.Tasks;
 
 namespace CallOfTheWild.AooMechanics
 {
+    public class UnitPartNoAooOnDisengage : AdditiveUnitPart
+    {
+        public bool active()
+        {
+            return !buffs.Empty();
+        }
+    }
+
+
     public class UnitPartAooAgainstAllies : AdditiveUnitPart
+    {
+        public bool active()
+        {
+            return !buffs.Empty();
+        }
+    }
+
+    public class UnitPartSpellbreaker : AdditiveUnitPart
     {
         public bool active()
         {
@@ -45,7 +64,6 @@ namespace CallOfTheWild.AooMechanics
         }
     }
 
-
     [AllowedOn(typeof(BlueprintUnitFact))]
     public class DoesNotEngage : OwnedGameLogicComponent<UnitDescriptor>
     {
@@ -60,6 +78,39 @@ namespace CallOfTheWild.AooMechanics
             this.Owner.Ensure<UnitPartDoesNotEngage>().removeBuff(this.Fact);
         }
     }
+
+
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class NoAooOnDisengage : OwnedGameLogicComponent<UnitDescriptor>
+    {
+        public override void OnTurnOn()
+        {
+            this.Owner.Ensure<UnitPartNoAooOnDisengage>().addBuff(this.Fact);
+        }
+
+
+        public override void OnTurnOff()
+        {
+            this.Owner.Ensure<UnitPartNoAooOnDisengage>().removeBuff(this.Fact);
+        }
+    }
+
+
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class Spellbreaker : OwnedGameLogicComponent<UnitDescriptor>
+    {
+        public override void OnTurnOn()
+        {
+            this.Owner.Ensure<UnitPartSpellbreaker>().addBuff(this.Fact);
+        }
+
+
+        public override void OnTurnOff()
+        {
+            this.Owner.Ensure<UnitPartSpellbreaker>().removeBuff(this.Fact);
+        }
+    }
+
 
     [AllowedOn(typeof(BlueprintUnitFact))]
     public class AooAgainstAllies : OwnedGameLogicComponent<UnitDescriptor>
@@ -341,6 +392,20 @@ namespace CallOfTheWild.AooMechanics
 
 
     [Harmony12.HarmonyPatch(typeof(UnitCombatState))]
+    [Harmony12.HarmonyPatch("ShouldAttackOnDisengage", Harmony12.MethodType.Normal)]
+    class Patch_UnitCombatState__ShouldAttackOnDisengage
+    {
+        static bool Prefix(UnitCombatState __instance, UnitEntityData target, ref bool __result)
+        {       
+            __result = target?.Get<UnitPartNoAooOnDisengage>() == null;
+
+            return __result;
+        }
+    }
+
+
+
+    [Harmony12.HarmonyPatch(typeof(UnitCombatState))]
     [Harmony12.HarmonyPatch("Engage", Harmony12.MethodType.Normal)]
     class Patch_UnitCombatState__Engage
     {
@@ -484,6 +549,35 @@ namespace CallOfTheWild.AooMechanics
             Game.Instance.CombatEngagementController.ForceAttackOfOpportunity(this.Owner.Unit, evt.Initiator);          
         }
     }
+
+
+    [Harmony12.HarmonyPatch(typeof(MagusController))]
+    [Harmony12.HarmonyPatch("OnEventDidTrigger", Harmony12.MethodType.Normal)]
+    [Harmony12.HarmonyPatch(new Type[] { typeof(RuleCheckCastingDefensively)})]
+    class Patch_MagusController__Spellbreaker
+    {
+        static bool Prefix(MagusController __instance, RuleCheckCastingDefensively evt)
+        {
+            if (!evt.Success)
+                return false;
+            foreach (UnitEntityData attacker in evt.Initiator.CombatState.EngagedBy)
+            {
+                UnitPartMagus unitPartMagus = attacker.Get<UnitPartMagus>();
+                if (unitPartMagus != null && (bool)unitPartMagus.Counterstrike)
+                {
+                    Game.Instance.CombatEngagementController.ForceAttackOfOpportunity(attacker, evt.Initiator);
+                }
+                else if ((attacker.Get<UnitPartSpellbreaker>()?.active()).GetValueOrDefault())
+                {
+                    Game.Instance.CombatEngagementController.ForceAttackOfOpportunity(attacker, evt.Initiator);
+                }
+            }
+            return false;
+        }
+    }
+
+
+
 
 
 }

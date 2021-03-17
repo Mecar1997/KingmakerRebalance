@@ -157,6 +157,9 @@ namespace CallOfTheWild
         static public List<BlueprintProgression> wildshape_progressions = new List<BlueprintProgression>();
         static public BlueprintFeature druid_wildshapes_progression;
 
+        static public BlueprintFeature dragon_wildshape0;
+        static public BlueprintFeature dragon_wildshape1;
+        static public BlueprintFeature dragon_wildshape2;
 
         static public BlueprintFeature addWildshapeProgression(string name, BlueprintCharacterClass[] classes, BlueprintArchetype[] archetypes, LevelEntry[] level_entries)
         {
@@ -174,6 +177,7 @@ namespace CallOfTheWild
             progression.LevelEntries = level_entries;
             
             wildshape_progressions.Add(progression);
+        
             return progression;
         }
 
@@ -211,6 +215,7 @@ namespace CallOfTheWild
             createShapechange();
 
             fixDruid();
+            createDragonWildshapes();
             createWildArmor();
             fixTransmuter();
 
@@ -351,7 +356,7 @@ namespace CallOfTheWild
                 library.Get<BlueprintWeaponEnchantment>("0b761b6ed6375114d8d01525d44be5a9"), //bane plant
                 library.Get<BlueprintWeaponEnchantment>("eebb4d3f20b8caa43af1fed8f2773328"), //bane undead
                 library.Get<BlueprintWeaponEnchantment>("c3428441c00354c4fabe27629c6c64dd"), //bane vermin
-                library.Get<BlueprintWeaponEnchantment>("66e9e299c9002ea4bb65b6f300e43770"), //brillinat energy
+                library.Get<BlueprintWeaponEnchantment>("66e9e299c9002ea4bb65b6f300e43770"), //brilliant energy
                 library.Get<BlueprintWeaponEnchantment>("633b38ff1d11de64a91d490c683ab1c8"), //corrosive
                 library.Get<BlueprintWeaponEnchantment>("0f20d79b7049c0f4ca54ca3d1ea44baa"), //disruption
                 library.Get<BlueprintWeaponEnchantment>("30f90becaaac51f41bf56641966c4121"), //flaming
@@ -362,7 +367,7 @@ namespace CallOfTheWild
                 library.Get<BlueprintWeaponEnchantment>("47857e1a5a3ec1a46adf6491b1423b4f"), //ghost touch
                 library.Get<BlueprintWeaponEnchantment>("28a9964d81fedae44bae3ca45710c140"), //holy
                 library.Get<BlueprintWeaponEnchantment>("102a9c8c9b7a75e4fb5844e79deaf4c0"), //keen
-                library.Get<BlueprintWeaponEnchantment>("564a6924b246d254c920a7c44bf2a58b"), //shocking
+                library.Get<BlueprintWeaponEnchantment>("7bda5277d36ad114f9f9fd21d0dab658"), //shocking
                 library.Get<BlueprintWeaponEnchantment>("914d7ee77fb09d846924ca08bccee0ff"), //shocking burst
                 library.Get<BlueprintWeaponEnchantment>("f1c0c50108025d546b2554674ea1c006"), //speed
                 library.Get<BlueprintWeaponEnchantment>("690e762f7704e1f4aa1ac69ef0ce6a96"), //thundering
@@ -925,6 +930,73 @@ namespace CallOfTheWild
         }
 
 
+        static void createDragonWildshapes()
+        {
+            var wildshape_resource = library.Get<BlueprintAbilityResource>("ae6af4d58b70a754d868324d1a05eda4");
+            var description = "At 10th level, draconic druid can spend two uses of wild shape to transform into a Medium dragon as per form of the dragon I, and at 12th level, she can spend two uses to change into a Large dragon as per form of the dragon II. Each time that a draconic druid uses wild shape counts as a separate casting of the spell for the purpose of refreshing her uses of her breath weapon.";
+            var druid = library.Get<BlueprintCharacterClass>("610d836f3a3a9ed42a4349b62f002e96");
+            var wildshape_wolf = library.Get<BlueprintAbility>("ac8811714a45a5948b27208538ce4f03");
+
+            var form_of_dragon1 = library.Get<BlueprintAbility>("f767399367df54645ac620ef7b2062bb");
+            var form_of_dragon2 = library.Get<BlueprintAbility>("666556ded3a32f34885e8c318c3a0ced");
+
+            var form_of_dragons = new BlueprintAbility[] { form_of_dragon1, form_of_dragon2 };
+            List<BlueprintAbility> wildshapes = new List<BlueprintAbility>();
+
+
+            foreach (var f in form_of_dragons)
+            {
+                var buffs = f.Variants.Select(v => Common.extractActions<ContextActionApplyBuff>(v.GetComponent<AbilityEffectRunAction>().Actions.Actions).FirstOrDefault().Buff).ToArray();
+                List<BlueprintAbility> abilities = new List<BlueprintAbility>();
+                for (int i = 0; i < buffs.Length; i++)
+                {
+                    var b = buffs[i];
+                    var wildshape_buff = library.CopyAndAdd<BlueprintBuff>(b, "Wildshape" + b.name, "");
+                    wildshape_buff.SetName($"Wild Shape ({b.Name})");
+                    wildshape_buff.ReplaceComponent<Polymorph>(p => p.Facts = p.Facts.RemoveFromArray(turn_back_standard).AddToArray(turn_back_free));
+                    wildshape_buff.AddComponent(Common.createContextCalculateAbilityParamsBasedOnClass(druid, StatType.Constitution));
+                    var a = replaceForm(wildshape_wolf, wildshape_buff, wildshape_buff.name + "Ability", wildshape_buff.Name, f.Variants[i].Description);
+                    a.ReplaceComponent<AbilityResourceLogic>(ab => ab.Amount = 2);
+                    a.SetIcon(f.Variants[i].Icon);
+                    a.AddComponent(Common.createContextCalculateAbilityParamsBasedOnClass(druid, StatType.Constitution));
+                    abilities.Add(a);
+                    druid_wild_shapes = druid_wild_shapes.AddToArray(b);
+
+                }
+
+                var wildshape = Common.createVariantWrapper("Wildshape" + f.name, "", abilities.ToArray());
+                wildshape.SetNameDescriptionIcon($"Wild Shape ({f.Name})", description + "\n" + f.Name + ": " + f.Description, f.Icon);
+                wildshapes.Add(wildshape);
+            }
+
+            dragon_wildshape1 = Common.AbilityToFeature(wildshapes[0], false);
+            dragon_wildshape2 = Common.AbilityToFeature(wildshapes[1], false);
+            dragon_wildshape1.AddComponent(Helpers.CreateAddFact(first_wildshape_form));
+
+            var claw1d6 = library.Get<BlueprintItemWeapon>("65eb73689b94d894080d33a768cdf645");
+            var bite1d6 = library.Get<BlueprintItemWeapon>("f3ff6972c32f22e4ba4c85c3982a03cf");
+            var buff0 = Helpers.CreateBuff("WildshapeDragonkindBuff",
+                                           "Dragon Shape",
+                                           "A draconic druid can’t use wild shape to change into any of the usual forms available to a druid.\n"
+                                           + "Instead, at 4th level, she can use wild shape to change into a dragon-scaled version of herself with long claws and fangs, gaining a +1 natural armor bonus to her AC and two claws and a bite attack appropriate for her size (1d6 points of damage for a Medium druid) but otherwise retaining her usual form.",
+                                           "",
+                                           Helpers.GetIcon("e8177155408433c489c70028c823faf9"),
+                                           null,
+                                           Helpers.CreateAddStatBonus(StatType.AC, 1, ModifierDescriptor.NaturalArmor),
+                                           Common.createEmptyHandWeaponOverride(claw1d6),
+                                           Common.createAddAdditionalLimb(bite1d6)
+                                           
+                                           );
+
+            var ability0 = replaceForm(wildshape_wolf, buff0, buff0.name + "Ability", buff0.Name, buff0.Description);
+            ability0.SetIcon(buff0.Icon);
+            dragon_wildshape0 = Common.AbilityToFeature(ability0, false);
+            dragon_wildshape0.AddComponent(wildshape_resource.CreateAddAbilityResource());
+            druid.Progression.UIGroups = druid.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(dragon_wildshape0, dragon_wildshape1, dragon_wildshape2));
+        }
+
+
+
         static BlueprintFeature createWildshapeFeature(BlueprintAbility wildshape_ability, string description)
         {
             var wildshape_wolf_feature = library.Get<BlueprintFeature>("19bb148cb92db224abb431642d10efeb");
@@ -1082,11 +1154,11 @@ namespace CallOfTheWild
         {
             var icon = Helpers.GetIcon("a1a8bf61cadaa4143b2d4966f2d1142e");
             var saves_descriptor = SpellDescriptor.MindAffecting | SpellDescriptor.Disease | SpellDescriptor.Poison | SpellDescriptor.Sleep | SpellDescriptor.Paralysis | SpellDescriptor.Stun;
-            var claw1d6 = library.Get<BlueprintItemWeapon>("65eb73689b94d894080d33a768cdf645");
+            var slam1d6 = library.Get<BlueprintItemWeapon>("767e6932882a99c4b8ca95c88d823137");
             var bite1d6 = library.Get<BlueprintItemWeapon>("a000716f88c969c499a535dadcf09286");
             var undead_form1 = Helpers.CreateBuff("UndeadAnatomyIFormBuff",
                                             "Undead Anatomy I",
-                                            "When you cast this spell, you can assume the form of a Medium corporeal creature of the undead type, which must be vaguely humanoid-shaped (like a ghoul or zombie). You gain a bite attack (1d6 for Medium forms, 1d4 for Small forms) and two claw attacks (1d6 for Medium forms, 1d4 for Small forms). You also gain a +2 size bonus to your Strength and a +2 natural armor bonus.\n"
+                                            "When you cast this spell, you can assume the form of a Medium corporeal creature of the undead type, which must be vaguely humanoid-shaped (like a ghoul or zombie). You gain a bite attack (1d6 for Medium forms, 1d4 for Small forms) and two slam attacks (1d6 for Medium forms, 1d4 for Small forms). You also gain a +2 size bonus to your Strength and a +2 natural armor bonus.\n"
                                             + "In this form, you detect as an undead creature (such as with detect undead, but not with magic that reveals your true form, such as true seeing) and are treated as undead for the purposes of channeled energy, cure spells, and inflict spells, but not for other effects that specifically target or react differently to undead (such as searing light).",
                                             "",
                                             icon,
@@ -1096,14 +1168,14 @@ namespace CallOfTheWild
                                             Helpers.CreateAddStatBonus(StatType.AC, 2,  ModifierDescriptor.NaturalArmor),
                                             Helpers.Create<UndeadMechanics.ConsiderUndeadForHealing>(),
                                             Helpers.CreateSpellDescriptor(SpellDescriptor.Polymorph),
-                                            Common.createEmptyHandWeaponOverride(claw1d6),//claws
+                                            Common.createEmptyHandWeaponOverride(slam1d6),//claws
                                             Common.createAddAdditionalLimb(bite1d6), //bite
                                             Helpers.CreateAddFacts(turn_back)
                                             );
 
             var undead_form2 = Helpers.CreateBuff("UndeadAnatomyIIFormBuff",
                                 "Undead Anatomy II",
-                                "When you cast this spell, you can assume the form of a Large corporeal creature of the undead type, which must be vaguely humanoid-shaped (like a ghoul or zombie). You gain a bite attack (1d6 for Medium forms, 1d4 for Small forms) and two claw attacks (1d6 for Medium forms, 1d4 for Small forms). You also gain DR 5/bludgeoning, a +4 size bonus to your Strength, a -2 penalty to your Dexterity and a +4 natural armor bonus.\n"
+                                "When you cast this spell, you can assume the form of a Large corporeal creature of the undead type, which must be vaguely humanoid-shaped (like a ghoul or zombie). You gain a bite attack (1d6 for Medium forms, 1d4 for Small forms) and two slam attacks (1d6 for Medium forms, 1d4 for Small forms). You also gain DR 5/bludgeoning, a +4 size bonus to your Strength, a -2 penalty to your Dexterity and a +4 natural armor bonus.\n"
                                 + "In this form, you detect as an undead creature (such as with detect undead, but not with magic that reveals your true form, such as true seeing) and are treated as undead for the purposes of channeled energy, cure spells, and inflict spells, but not for other effects that specifically target or react differently to undead (such as searing light).\n"
                                 + "In this form, you gain a +4 bonus on saves against mind-affecting effects, disease, poison, sleep, and stunning.",
                                 "",
@@ -1117,14 +1189,14 @@ namespace CallOfTheWild
                                 Helpers.Create<UndeadMechanics.ConsiderUndeadForHealing>(),
                                 Helpers.CreateSpellDescriptor(SpellDescriptor.Polymorph),
                                 Common.createContextFormDR(5, PhysicalDamageForm.Bludgeoning),
-                                Common.createEmptyHandWeaponOverride(claw1d6),//claws
+                                Common.createEmptyHandWeaponOverride(slam1d6),//claws
                                 Common.createAddAdditionalLimb(bite1d6), //bite
                                 Helpers.CreateAddFacts(turn_back)
                                 );
 
             var undead_form3 = Helpers.CreateBuff("UndeadAnatomyIIIFormBuff",
                                                 "Undead Anatomy III",
-                                                "When you cast this spell, you can assume the form of a Huge corporeal creature of the undead type, which must be vaguely humanoid-shaped (like a ghoul or zombie). You gain a bite attack (1d6 for Medium forms, 1d4 for Small forms) and two claw attacks (1d6 for Medium forms, 1d4 for Small forms). You also gain DR 5/-, a +4 size bonus to your Strength, a -2 penalty to your Dexterity and a +4 natural armor bonus.\n"
+                                                "When you cast this spell, you can assume the form of a Huge corporeal creature of the undead type, which must be vaguely humanoid-shaped (like a ghoul or zombie). You gain a bite attack (1d6 for Medium forms, 1d4 for Small forms) and two slam attacks (1d6 for Medium forms, 1d4 for Small forms). You also gain DR 5/-, a +4 size bonus to your Strength, a -2 penalty to your Dexterity and a +4 natural armor bonus.\n"
                                                 + "In this form, you detect as an undead creature (such as with detect undead, but not with magic that reveals your true form, such as true seeing) and are treated as undead for the purposes of channeled energy, cure spells, and inflict spells, but not for other effects that specifically target or react differently to undead (such as searing light).\n"
                                                 + "In this form, you gain a +8 bonus on saves against mind-affecting effects, disease, poison, sleep, and stunning. If the form has a vulnerability to an attack (such as sunlight), you gain that vulnerability.",
                                                 "",
@@ -1138,7 +1210,7 @@ namespace CallOfTheWild
                                                 Common.createPhysicalDR(5),
                                                 Helpers.Create<UndeadMechanics.ConsiderUndeadForHealing>(),
                                                 Helpers.CreateSpellDescriptor(SpellDescriptor.Polymorph),
-                                                Common.createEmptyHandWeaponOverride(claw1d6),//claws
+                                                Common.createEmptyHandWeaponOverride(slam1d6),//claws
                                                 Common.createAddAdditionalLimb(bite1d6), //bite
                                                 Helpers.CreateAddFacts(turn_back)
                                                 );
@@ -1768,6 +1840,10 @@ namespace CallOfTheWild
 
             variants.Variants = variants.Variants.AddToArray(polymorph_wolf, polymorph_bear, polymorph_dire_wolf);
             polymorph_spell.SetDescription("This spell transforms an allied creature into a wolf, a leopard, a Large bear, a Large dire wolf or a small elemental. The subject may choose to resume its normal form as a full-round action; doing so ends the spell for that subject.");
+            foreach (var v in variants.Variants)
+            {
+                v.AddComponent(Helpers.Create<HarmlessSaves.HarmlessSpell>());
+            }
         }
 
 
@@ -1790,6 +1866,10 @@ namespace CallOfTheWild
             variants.Variants = variants.Variants.AddToArray(polymorph_mastodon, polymorph_hodag, polymorph_winter_wolf);
             polymorph_spell.SetDescription("This spell transforms an allied creature into a large smilodon, huge mastodon, large hodag, large winter wolf, large shambling mound, large elemental, wyvern or medium dragon-like creature. The subject may choose to resume its normal form as a full-round action; doing so ends the spell for that subject.");
 
+            foreach (var v in variants.Variants)
+            {
+                v.AddComponent(Helpers.Create<HarmlessSaves.HarmlessSpell>());
+            }
         }
 
 

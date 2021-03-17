@@ -105,6 +105,16 @@ namespace CallOfTheWild
         static public BlueprintFeature teamwork_feat_share;
         static public BlueprintFeatureSelection teamwork_feat;
 
+
+        static public BlueprintArchetype construct_caller;
+        static public BlueprintFeature[] planar_tinkering = new BlueprintFeature[5];
+        static public BlueprintFeatureSelection construct_eidolon_selection;
+
+        static public BlueprintArchetype soulbound_summoner;
+        static public BlueprintFeature[] soulbound_evolution = new BlueprintFeature[5];
+        static public BlueprintFeature soulbound_life_link;
+        static public BlueprintFeatureSelection pactbound_curse;
+
         static public BlueprintAbility summon_companion_ability;
         static public BlueprintAbility summon_call_ability;
 
@@ -162,7 +172,9 @@ namespace CallOfTheWild
             createNaturalist();
             createMasterSummoner();
             createTwinnedSummoner();
-            summoner_class.Archetypes = new BlueprintArchetype[] {devil_binder, fey_caller, naturalist, master_summoner, twinned_summoner };
+            //createConstructCaller();
+            createSoulboundSummoner();
+            summoner_class.Archetypes = new BlueprintArchetype[] {devil_binder, fey_caller, naturalist, master_summoner, twinned_summoner, soulbound_summoner /*, construct_caller*/ };
             Helpers.RegisterClass(summoner_class);
 
             Evolutions.addClassToExtraEvalution(summoner_class);
@@ -182,7 +194,175 @@ namespace CallOfTheWild
                                         Common.createPrerequisiteClassSpellLevel(summoner_class, 2));
             Common.addReplaceSpellbook(Common.DragonDiscipleSpellbookSelection, summoner_class.Spellbook, "DragonDiscipleSummoner",
                                         Common.createPrerequisiteClassSpellLevel(summoner_class, 1));
+        }
 
+
+        static void createSoulboundSummoner()
+        {
+            soulbound_summoner = Helpers.Create<BlueprintArchetype>(a =>
+            {
+                a.name = "SoulboundSummonerArchetype";
+                a.LocalizedName = Helpers.CreateString($"{a.name}.Name", "Soulbound Summoner");
+                a.LocalizedDescription = Helpers.CreateString($"{a.name}.Description", "Not everyone who becomes a summoner is an intentional dabbler in the arcane arts. Soulbound summoners, as a rule, never set out to bind their soul to a dangerous and enigmatic power. Rather, they have found themselves unintentional masters of eidolons through incredible circumstances. Most common are those who forged their pacts with an outsider out of a mutual desire for self-preservation. Other soulbound summoners never contacted a true outsider at all, instead manifesting an eidolon from their minds in response to mental or magical trauma. The events that create such a summoner result in the eidolon fusing entirely to the summoner’s psyche. These accidental summoners lack the practiced skill at reaching across planes that most summoners have, but their intense bond with their eidolon grants both summoner and outsider unusual power.");
+            });
+            Helpers.SetField(soulbound_summoner, "m_ParentClass", summoner_class);
+            library.AddAsset(soulbound_summoner, "");
+
+
+            //create planar tinkering
+            for (int i = 0; i < soulbound_evolution.Length; i++)
+            {
+                soulbound_evolution[i] = Helpers.CreateFeature($"SoulboundEvolution{i}Feature",
+                                                          "Soulbound Evolution",
+                                                          "A soulbound summoner’s eidolon gains power from its unusually strong bond with its summoner.\n"
+                                                          + "At 3rd level, and every 4 levels thereafter, the eidolon adds 1 point to its evolution pool.",
+                                                          "",
+                                                          null,
+                                                          FeatureGroup.None,
+                                                          Helpers.Create<EvolutionMechanics.IncreaseEvolutionPool>(ep => ep.amount = 1)
+                                                          );
+            }
+
+            createSoulboundLifeLink();
+            createPactboundCurse();
+
+            soulbound_summoner.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, life_link, summon_monster[0]),
+                                                             Helpers.LevelEntry(3, summon_monster[1]),
+                                                             Helpers.LevelEntry(5, summon_monster[2]),
+                                                             Helpers.LevelEntry(7, summon_monster[3]),
+                                                             Helpers.LevelEntry(9, summon_monster[4]),
+                                                             Helpers.LevelEntry(11, summon_monster[5]),
+                                                             Helpers.LevelEntry(13, summon_monster[6]),
+                                                             Helpers.LevelEntry(15, summon_monster[7]),
+                                                             Helpers.LevelEntry(17, summon_monster[8])
+                                                           };
+            soulbound_summoner.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, soulbound_life_link, pactbound_curse),
+                                                             Helpers.LevelEntry(3, soulbound_evolution[0]),
+                                                             Helpers.LevelEntry(7, soulbound_evolution[1]),
+                                                             Helpers.LevelEntry(11, soulbound_evolution[2]),
+                                                             Helpers.LevelEntry(15, soulbound_evolution[3]),
+                                                             Helpers.LevelEntry(19, soulbound_evolution[4])
+                                                        };
+
+            summoner_class.Progression.UIDeterminatorsGroup = summoner_class.Progression.UIDeterminatorsGroup.AddToArray(pactbound_curse);
+            summoner_class.Progression.UIGroups = summoner_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(soulbound_evolution));
+        }
+
+
+        static void createPactboundCurse()
+        {
+            pactbound_curse = Helpers.CreateFeatureSelection("PactboundCurseSelection",
+                                                             "Pactbond Curse",
+                                                             "A soulbound summoner’s metaphysical connection with his eidolon has profound effects on both of them. The eidolon’s alignment always matches that of the soulbound summoner, regardless of its subtype. In addition, at 1st level, the summoner must choose an oracle curse, using his summoner level as his oracle level for determining the curse’s effects. Once this choice is made, it cannot be changed. A summoner that gains spells for his list of spells known as a result of his curse must be able to cast spells of the appropriate level in order to cast the learned spell.",
+                                                             "",
+                                                             null,
+                                                             FeatureGroup.Domain,
+                                                             Helpers.Create<NoSelectionIfAlreadyHasFeature>(n => { n.AnyFeatureFromSelection = true; n.Features = new BlueprintFeature[0]; })
+                                                             );
+            pactbound_curse.AllFeatures = new BlueprintFeature[0];
+            //curses will be added from Oracle class
+        }
+
+
+        public static void addCurseProgressionToPactboundCurse(BlueprintProgression oracle_curse)
+        {
+            ClassToProgression.addClassToProgression(summoner_class, new BlueprintArchetype[] { soulbound_summoner }, ClassToProgression.DomainSpellsType.NormalList,
+                                                     oracle_curse, Oracle.oracle_class);
+
+            pactbound_curse.AllFeatures = pactbound_curse.AllFeatures.AddToArray(oracle_curse);
+            
+        }
+
+
+        static void createSoulboundLifeLink()
+        {
+            int[] hp_amount = new int[] { 1, 5, 10, 25 };
+            var abilities = new BlueprintAbility[hp_amount.Length];
+
+
+            for (int i = 0; i < hp_amount.Length; i++)
+            {
+                var heal = Common.createContextActionHealTargetNoBonus(Helpers.CreateContextDiceValue(DiceType.Zero, 0, hp_amount[i]));
+                var breath_of_life = Helpers.Create<ContextActionBreathOfLife>(b => b.Value = Helpers.CreateContextDiceValue(DiceType.Zero, 0, hp_amount[i]));
+                var eidolon_action = Helpers.CreateConditional(Helpers.Create<ContextConditionAlive>(), heal, breath_of_life);
+
+                var damage = Helpers.CreateActionDealDamage(DamageEnergyType.Holy, Helpers.CreateContextDiceValue(DiceType.Zero, 0, hp_amount[i]));
+                damage.DamageType.Type = Kingmaker.RuleSystem.Rules.Damage.DamageType.Direct;
+
+                var ability = Helpers.CreateAbility($"SoulboundLifeLink{hp_amount[i]}Ability",
+                                                    $"Soulbound Life Link ({hp_amount[i]} HP)",
+                                                    "The essence of a soulbound summoner’s eidolon resides within the summoner’s mind and soul instead of a home plane, and he can use this connection to restore his eidolon with his own vitality. The summoner can use his life link ability to sacrifice any number of his hit points without using an action. Each hit point sacrificed in this way heals the eidolon for 1 point of damage. The soulbound summoner can use this ability even after the eidolon has been killed and sent back to its summoner’s mind; if the eidolon is healed enough that its hit point total is above 0, it can be summoned again as normal.",
+                                                    "",
+                                                    Helpers.GetIcon("41c9016596fe1de4faf67425ed691203"), //cure critical wounds
+                                                    AbilityType.Supernatural,
+                                                    CommandType.Free,
+                                                    AbilityRange.Personal,
+                                                    "",
+                                                    "",
+                                                    Helpers.CreateRunActions(damage, Helpers.Create<ContextActionsOnPet>(c => c.Actions = Helpers.CreateActionList((eidolon_action)))),
+                                                    Common.createAbilitySpawnFx("9a38d742801be084d89bd34318c600e8", anchor: AbilitySpawnFxAnchor.SelectedTarget),
+                                                    Helpers.Create<CompanionMechanics.AbilityCasterCompanionUnsummoned>(a => a.not = true),
+                                                    Helpers.Create<NewMechanics.AbilityCasterHpCondition>(a => { a.Inverted = true; a.CurrentHPLessThan = hp_amount[i] + 1; })
+                                                    );
+                ability.setMiscAbilityParametersSelfOnly();
+                abilities[i] = ability;
+            }
+
+            var wrapper = Common.createVariantWrapper("SoulboundLifeLinkBase", "", abilities);
+            wrapper.SetName("Soulbound Link");
+
+            soulbound_life_link = Common.AbilityToFeature(wrapper, false);
+        }
+
+        static void createConstructCaller()
+        {
+            construct_caller = Helpers.Create<BlueprintArchetype>(a =>
+            {
+                a.name = "ConstructCallerArchetype";
+                a.LocalizedName = Helpers.CreateString($"{a.name}.Name", "Construct Caller");
+                a.LocalizedDescription = Helpers.CreateString($"{a.name}.Description", "Construct callers use their mechanical and planar understandings to work planar energies as a tinkerer works parts. They use this understanding to hand-craft unique, constructed eidolons.");
+            });
+            Helpers.SetField(construct_caller, "m_ParentClass", summoner_class);
+            library.AddAsset(construct_caller, "");
+
+
+            //create planar tinkering
+            for (int i = 0; i < planar_tinkering.Length; i++)
+            {
+                planar_tinkering[i] = Helpers.CreateFeature($"PlanarTinkering{i}Feature",
+                                                          "Planar Tinkering",
+                                                          "At 3rd level, a construct caller learns to better shape planar energy to improve her eidolon. The number of points in her eidolon’s evolution pool increases by 1. The number of points in the eidolon’s evolution pool increases by an additional 1 at 7th level and every 4 levels thereafter, for a total of 5 additional points at 19th level.",
+                                                          "",
+                                                          null,
+                                                          FeatureGroup.None,
+                                                          Helpers.Create<EvolutionMechanics.IncreaseEvolutionPool>(ep => ep.amount = 1)
+                                                          );
+            }
+            construct_eidolon_selection = library.CopyAndAdd(eidolon_selection, "ConstructEidolonSelection", "d0ccc547a64347668cb33da79f13de7a");
+            construct_eidolon_selection.SetNameDescriptionIcon(Eidolon.construct_eidolon);
+            construct_eidolon_selection.AllFeatures = new BlueprintFeature[] { Eidolon.construct_eidolon };
+            construct_eidolon_selection.HideInCharacterSheetAndLevelUp = true;
+
+            construct_caller.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, eidolon_selection, summon_monster[0]),
+                                                             Helpers.LevelEntry(3, summon_monster[1]),
+                                                             Helpers.LevelEntry(5, summon_monster[2]),
+                                                             Helpers.LevelEntry(7, summon_monster[3]),
+                                                             Helpers.LevelEntry(9, summon_monster[4]),
+                                                             Helpers.LevelEntry(11, summon_monster[5]),
+                                                             Helpers.LevelEntry(13, summon_monster[6]),
+                                                             Helpers.LevelEntry(15, summon_monster[7]),
+                                                             Helpers.LevelEntry(17, summon_monster[8])
+                                                           };
+            construct_caller.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, construct_eidolon_selection),
+                                                             Helpers.LevelEntry(3, planar_tinkering[0]),
+                                                             Helpers.LevelEntry(7, planar_tinkering[1]),
+                                                             Helpers.LevelEntry(11, planar_tinkering[2]),
+                                                             Helpers.LevelEntry(15, planar_tinkering[3]),
+                                                             Helpers.LevelEntry(19, planar_tinkering[4])
+                                                        };
+
+            summoner_class.Progression.UIDeterminatorsGroup = summoner_class.Progression.UIDeterminatorsGroup.AddToArray(construct_eidolon_selection);
+            summoner_class.Progression.UIGroups = summoner_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(planar_tinkering));
         }
 
 
@@ -232,7 +412,7 @@ namespace CallOfTheWild
             twinned_eidolon_selection = library.CopyAndAdd(eidolon_selection, "TwinnedEidolonFeatureSelection", "07464c5f4c5e4dd79120db73a3cfd597");
             twinned_eidolon_selection.SetNameDescriptionIcon(Eidolon.twinned_eidolon);
             twinned_eidolon_selection.AllFeatures = new BlueprintFeature[] { Eidolon.twinned_eidolon, Eidolon.twinned_eidolon_small };
-
+            twinned_eidolon_selection.AddComponent(Helpers.Create<CompanionMechanics.ChangeCompanionAlignmentToMasters>());
 
             twinned_summoner.RemoveFeatures = new LevelEntry[] {Helpers.LevelEntry(1, eidolon_selection),
                                                              Helpers.LevelEntry(4, shield_ally),
@@ -816,7 +996,7 @@ namespace CallOfTheWild
             var hellfire_resource = Helpers.CreateAbilityResource("DevilBinderHellfireResource", "", "", "", null);
             hellfire_resource.SetIncreasedByLevelStartPlusDivStep(1, 17, 1, 3, 1, 0, 0.0f, getSummonerArray());
             var hellfire_ability = library.CopyAndAdd<BlueprintAbility>("87e837a180a12db448a6d78e58e1b0a6", "DevinlBinderHellfireAbility", "");
-            hellfire_ability.SetDescription("You can call down a column of hellfire. This 10 - foot - radius burst does 1d6 points of fire damage per sorcerer level.Those caught in the area of your blast receive a Reflex save for half damage. Good creatures that fail their saves are shaken for a number of rounds equal to your sorcerer level.The DC of this save is equal to 10 + 1/2 your summoner level + your Charisma modifier. At 12th level, you can use this ability once per day. At 17th level, you can use this ability twice per day. At 20th level, you can use this ability three times per day. This power has a range of 60 feet.");
+            hellfire_ability.SetDescription($"You can call down a column of hellfire. This 10 - foot - radius burst does 1d{BalanceFixes.getDamageDieString(DiceType.D6)} points of fire damage per sorcerer level. Those caught in the area of your blast receive a Reflex save for half damage. Good creatures that fail their saves are shaken for a number of rounds equal to your sorcerer level. The DC of this save is equal to 10 + 1/2 your summoner level + your Charisma modifier. At 12th level, you can use this ability once per day. At 17th level, you can use this ability twice per day. At 20th level, you can use this ability three times per day. This power has a range of 60 feet.");
 
             hellfire_ability.ReplaceComponent<AbilityResourceLogic>(a => a.RequiredResource = hellfire_resource);
             hellfire_ability.ReplaceComponent<ContextRankConfig>(c => { Helpers.SetField(c, "m_Class", getSummonerArray()); Helpers.SetField(c, "Archetype", devil_binder); });

@@ -138,7 +138,7 @@ namespace CallOfTheWild
         internal static void createPsychicClass()
         {
             var wizard_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("ba34257984f4c41408ce1dc2004e342e");
-            var sorceror_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("b3a505fb61437dc4097f43c3f8f9a4cf");
+            var sorcerer_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("b3a505fb61437dc4097f43c3f8f9a4cf");
 
             psychic_class = Helpers.Create<BlueprintCharacterClass>();
             psychic_class.name = "PsychicClass";
@@ -149,7 +149,7 @@ namespace CallOfTheWild
                 "Within the mind of any sentient being lies power to rival that of the greatest magical artifact or holy site. By accessing these staggering vaults of mental energy, the psychic can shape the world around her, the minds of others, and pathways across the planes. No place or idea is too secret or remote for a psychic to access, and she can pull from every type of psychic magic. Many methods allow psychics to tap into their mental abilities, and the disciplines they follow affect their abilities.\n"
                 + "Role: With a large suite of spells, psychics can handle many situations, but they excel at moving and manipulating objects, as well as reading and influencing thoughts."
                 );
-            psychic_class.m_Icon = sorceror_class.Icon;
+            psychic_class.m_Icon = sorcerer_class.Icon;
             psychic_class.SkillPoints = wizard_class.SkillPoints;
             psychic_class.HitDie = DiceType.D6;
             psychic_class.BaseAttackBonus = wizard_class.BaseAttackBonus;
@@ -170,11 +170,11 @@ namespace CallOfTheWild
             psychic_class.EquipmentEntities = wizard_class.EquipmentEntities;
             psychic_class.MaleEquipmentEntities = wizard_class.MaleEquipmentEntities;
             psychic_class.FemaleEquipmentEntities = wizard_class.FemaleEquipmentEntities;
-            psychic_class.ComponentsArray = sorceror_class.ComponentsArray;
+            psychic_class.ComponentsArray = sorcerer_class.ComponentsArray;
             psychic_class.StartingItems = new Kingmaker.Blueprints.Items.BlueprintItem[] {library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("511c97c1ea111444aa186b1a58496664"), //crossbow
                                                                                         library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("ada85dae8d12eda4bbe6747bb8b5883c"), // quarterstaff
                                                                                         library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("63caf94a780472b448f50d0bc183c38f"), //s. magic missile
-                                                                                        library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("63caf94a780472b448f50d0bc183c38f"), //s. magic missile
+                                                                                        library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("78da1d5a10d8e384285e54df202dfb01"), //s. hypnotism
                                                                                         library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("e8308a74821762e49bc3211358e81016"), //s. mage armor
                                                                                         library.Get<Kingmaker.Blueprints.Items.BlueprintItem>("f79c3fd5012a3534c8ab36dc18e85fb1") //s. sleep
                                                                                        };
@@ -398,7 +398,7 @@ namespace CallOfTheWild
                     };
 
                     var buff3 = Helpers.CreateBuff($"AuraOfInsanityIII{i + 1}{j+1}Buff",
-                                                   aura_of_insanity[2].Name + "(" + specific_confusion_buffs[j].Name + ")",
+                                                   aura_of_insanity[2].Name + " (" + specific_confusion_buffs[j].Name + ")",
                                                    aura_of_insanity[2].Description,
                                                    "",
                                                    aura_of_insanity[2].Icon,
@@ -803,6 +803,7 @@ namespace CallOfTheWild
                                                             "6a8651389c6348bb819b41b8ecdfe9fe",
                                                             spell_recollection.Icon,
                                                             null);
+            amnesiac_cooldown_buff.SetBuffFlags(BuffFlags.RemoveOnRest);
             var apply_cooldown = Common.createContextActionApplyBuff(amnesiac_cooldown_buff, Helpers.CreateContextDuration(1, DurationRate.Hours), dispellable: false);
             for (int i = 1; i <= 9; i++)
             {
@@ -966,8 +967,17 @@ namespace CallOfTheWild
             //primal spells
             var druid_spell_list = library.Get<BlueprintSpellList>("bad8638d40639d04fa2f80a1cac67d6b");
            
-            var combined_spell_list = Common.combineSpellLists("MagaambyanTelepathPrimalMagicSpellList", druid_spell_list);
-            Common.excludeSpellsFromList(combined_spell_list, psychic_class.Spellbook.SpellList);
+            var combined_spell_list = Common.combineSpellLists("MagaambyanTelepathPrimalMagicSpellList",
+                                                                (spell, spell_list, lvl) =>
+                                                                {
+                                                                    if (psychic_class.Spellbook.SpellList.Contains(spell)
+                                                                        && psychic_class.Spellbook.SpellList.GetLevel(spell) != lvl)
+                                                                    {
+                                                                        return false;
+                                                                    }
+                                                                    return true;
+                                                                },
+                                                               druid_spell_list);
 
             for (int i = 1; i <= 9; i++)
             {
@@ -1048,7 +1058,7 @@ namespace CallOfTheWild
 
             written_in_stars_ability = Helpers.CreateAbility("WrittenInStarsBaseAbility",
                                                              "Written in the Stars",
-                                                             "An esoteric starseeker can attune herself to a constellation of the Cosmic Caravan, gaining knowledge of new spells from it. She gains one bonus constellation spell slot for each spell level she can cast, and she can prepare a spell associated with her attuned constellation into that slot. At 11th level, she can attune herself to two constellations, choosing between the spells offered by both constellations when she prepares her constellation spells. "
+                                                             "An esoteric starseeker can attune herself to a constellation of the Cosmic Caravan, gaining knowledge of new spells from it. She gains one bonus constellation spell for each spell level she can cast. At 11th level, she can attune herself to two constellations, choosing between the spells offered by both constellations when she prepares her constellation spells."
                                                              + "She can change her attuned constellations in the beggining of the day. The Cosmic Caravan and their associated spells are as follows:\n",
                                                              "",
                                                              LoadIcons.Image2Sprite.Create(@"AbilityIcons/Starburn.png"),
@@ -1640,6 +1650,7 @@ namespace CallOfTheWild
                                                                m.Roll = 20;
                                                                m.Replace = true;
                                                                m.actions = Helpers.CreateActionList(Helpers.Create<NewMechanics.ContextActionSpendResource>(c => c.resource = phrenic_pool_resource));
+                                                               m.required_resource = phrenic_pool_resource;
                                                            })
                                                            );
 
@@ -1680,7 +1691,7 @@ namespace CallOfTheWild
             painful_reminder_resource.SetIncreasedByStat(3, StatType.Charisma);
             var painful_reminder_buff = Helpers.CreateBuff("PainfulReminderBuff",
                                                            "Painful Reminder Allowed",
-                                                           "As a swift action, you can cause an enemy to take 1d6 points of nonlethal damage if you dealt damage to that enemy with a spell since the start of your previous turn. You can use this ability a number of times per day equal to 3 + your Charisma modifier. This damage increases to 2d6 at 8th level and to 3d6 at 15th level.\n"
+                                                           $"As a swift action, you can cause an enemy to take 1d{BalanceFixes.getDamageDieString(DiceType.D6)} points of nonlethal damage if you dealt damage to that enemy with a spell since the start of your previous turn. You can use this ability a number of times per day equal to 3 + your Charisma modifier. This damage increases to 2d{BalanceFixes.getDamageDieString(DiceType.D6)} at 8th level and to 3d{BalanceFixes.getDamageDieString(DiceType.D6)} at 15th level.\n"
                                                            + "If your painful reminder deals at least 5 points of damage, you regain 1 point in your phrenic pool.",
                                                            "",
                                                            Helpers.GetIcon("55f14bc84d7c85446b07a1b5dd6b2b4c"), //daze
@@ -1707,7 +1718,7 @@ namespace CallOfTheWild
                                                                                                                       Common.createContextActionOnContextCaster(Helpers.Create<ResourceMechanics.ContextRestoreResource>(c => c.Resource = phrenic_pool_resource))
                                                                                                                      )
                                                                                           ),
-                                                                 Helpers.CreateCalculateSharedValue(Helpers.CreateContextDiceValue(DiceType.D6, Helpers.CreateContextValue(AbilityRankType.Default), 0)),
+                                                                 Helpers.CreateCalculateSharedValue(Helpers.CreateContextDiceValue(BalanceFixes.getDamageDie(DiceType.D6), Helpers.CreateContextValue(AbilityRankType.Default), 0)),
                                                                  Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, classes: getPsychicArray(), progression: ContextRankProgression.Custom,
                                                                                                  customProgression: new (int, int)[] { (7, 1), (14, 2), (20, 3) }),
                                                                  painful_reminder_resource.CreateResourceLogic()
@@ -2327,7 +2338,7 @@ namespace CallOfTheWild
                                                                                                                                      ),
                                                                                                            Helpers.CreateConditional(Common.createContextConditionCasterHasFact(psychic_safeguard),
                                                                                                                                      apply_psychic_safeguard_buff),
-                                                                                                           spend_resource,
+                                                                                                           //spend_resource,
                                                                                                            Common.createContextActionRemoveBuffsByDescriptor(SpellDescriptor.Fear | SpellDescriptor.Shaken)
                                                                                                            },
                                                                               newRound: new GameAction[] {spend_resource
@@ -2366,12 +2377,13 @@ namespace CallOfTheWild
                                                                                      )
                                                  );
             toggle_buff.SetBuffFlags(BuffFlags.HiddenInUi);
-            var dark_half_toggle = Common.buffToToggle(toggle_buff, test_mode ? CommandType.Free : CommandType.Swift, true,
+            var dark_half_toggle = Common.buffToToggle(toggle_buff, test_mode ? CommandType.Free : CommandType.Swift, false,
                                                  resource.CreateActivatableResourceLogic(spendType: ActivatableAbilityResourceLogic.ResourceSpendType.Never),
                                                  Helpers.Create<RestrictionHasFact>(a => { a.Feature = deactivate_buff; a.Not = true; })
                                                  );
             dark_half_toggle.SetNameDescriptionIcon(buff.Name, buff.Description, buff.Icon);
-            
+            dark_half_toggle.DeactivateIfCombatEnded = true;
+
 
             var dark_half = Common.ActivatableAbilityToFeature(dark_half_toggle, false);
             dark_half.AddComponent(resource.CreateAddAbilityResource());

@@ -38,7 +38,7 @@ namespace CallOfTheWild
         {
             var feature = Helpers.CreateFeature(prefix + "SpellPowerFeature",
                                                   "Spell Power",
-                                                  " As a free action while casting a spell, you can expend 2 points of mental focus to increase that spell’s caster level by 2. At 12th and 18th levels, whenever you use this ability, you can spend an additional point of mental focus in order to increase the spell’s caster level by an additional 1.",
+                                                  "As a free action while casting a spell, you can expend 2 points of mental focus to increase that spell’s caster level by 2. At 12th and 18th levels, whenever you use this ability, you can spend an additional point of mental focus in order to increase the spell’s caster level by an additional 1.",
                                                   "",
                                                   Shaman.font_of_spirit_magic.Icon,
                                                   FeatureGroup.None
@@ -129,11 +129,10 @@ namespace CallOfTheWild
             var metamagics = library.GetAllBlueprints().OfType<BlueprintFeature>().Where(b => b.Groups.Contains(FeatureGroup.WizardFeat) && (b.GetComponent<AddMetamagicFeat>() != null)).ToArray();
             var feature = Helpers.CreateFeatureSelection(prefix + "MetamagicKnowledgeFeature",
                                                         "Metamagic Knowledge",
-                                                        "You receive one metamagic feat. This also permanently reduce your mental focus pool by 3.",
+                                                        "You receive one metamagic feat.",
                                                         "",
                                                         null,
-                                                        FeatureGroup.None,
-                                                        Helpers.Create<IncreaseResourceAmount>(i => { i.Resource = reduced_resource; i.Value = -3; })
+                                                        FeatureGroup.None
                                                         );
             feature.AllFeatures = metamagics;
             feature.AddComponent(Helpers.PrerequisiteNoFeature(feature));

@@ -40,7 +40,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug Install|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\..\..\Modding\Kingmaker\Call Of the Wild Build\</OutputPath>
+    <OutputPath>$(KingmakerInstallDir)\Mods\CallOfTheWild\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>portable</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -62,19 +62,19 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony12">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityModManager\0Harmony12.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityModManager\0Harmony12.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -84,43 +84,43 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.AnimationModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityModManager">
-      <HintPath>..\..\..\Games\Pathfinder Kingmaker\Kingmaker_Data\Managed\UnityModManager\UnityModManager.dll</HintPath>
+      <HintPath>$(KingmakerInstallDir)\Kingmaker_Data\Managed\UnityModManager\UnityModManager.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -132,10 +132,17 @@
     <Compile Include="Archetypes\ArrowsongMinstrel.cs" />
     <Compile Include="Archetypes\BeastkinBerserker.cs" />
     <Compile Include="Archetypes\Bloodhunter.cs" />
+    <Compile Include="Archetypes\CourtBard.cs" />
+    <Compile Include="Archetypes\Crossblooded.cs" />
+    <Compile Include="Archetypes\DervishOfDawn.cs" />
     <Compile Include="Archetypes\DirgeBard.cs" />
+    <Compile Include="Archetypes\DivineScourge.cs" />
     <Compile Include="Archetypes\DivineTracker.cs" />
+    <Compile Include="Archetypes\DraconicDruid.cs" />
     <Compile Include="Archetypes\DrillSergeant.cs" />
+    <Compile Include="Archetypes\ElementalAnnihilator.cs" />
     <Compile Include="Archetypes\GraveWarden.cs" />
+    <Compile Include="Archetypes\IroranPaladin.cs" />
     <Compile Include="Archetypes\LoreWarden.cs" />
     <Compile Include="Archetypes\MindBlade.cs" />
     <Compile Include="Archetypes\MonkOfTheMantis.cs" />
@@ -145,14 +152,21 @@
     <Compile Include="Archetypes\Executioner.cs" />
     <Compile Include="Archetypes\NatureBondedMagus.cs" />
     <Compile Include="Archetypes\Ninja.cs" />
+    <Compile Include="Archetypes\PackRager.cs" />
+    <Compile Include="Archetypes\PactWizard.cs" />
     <Compile Include="Archetypes\PrimalSorcerer.cs" />
     <Compile Include="Archetypes\Rake.cs" />
     <Compile Include="Archetypes\RavenerHunter.cs" />
+    <Compile Include="Archetypes\RelicHunter.cs" />
     <Compile Include="Archetypes\SacredServant.cs" />
+    <Compile Include="Archetypes\SageCounselor.cs" />
     <Compile Include="Archetypes\SanctifiedSlayer.cs" />
     <Compile Include="Archetypes\Seeker.cs" />
+    <Compile Include="Archetypes\Skirnir.cs" />
     <Compile Include="Archetypes\SpiritWhisperer.cs" />
     <Compile Include="Archetypes\StormDruid.cs" />
+    <Compile Include="Archetypes\StygianSlayer.cs" />
+    <Compile Include="Archetypes\Swashbuckler.cs" />
     <Compile Include="Archetypes\Toxicant.cs" />
     <Compile Include="Archetypes\UntamedRager.cs" />
     <Compile Include="Archetypes\ZenArcher.cs" />
@@ -184,7 +198,7 @@
     <Compile Include="Classes\Implements\ImplementsEngine.cs" />
     <Compile Include="Classes\Implements\MagesParaphernalia.cs" />
     <Compile Include="Classes\Implements\Necromancy.cs" />
-	<Compile Include="Classes\Implements\PerformersAccoutrements.cs" />
+    <Compile Include="Classes\Implements\PerformersAccoutrements.cs" />
     <Compile Include="Classes\Implements\SaintsHolyRegalia.cs" />
     <Compile Include="Classes\Implements\Transmutation.cs" />
     <Compile Include="Classes\Implements\TrappingsOfTheWarrior.cs" />
@@ -217,7 +231,7 @@
     <Compile Include="Archetypes\UndeadLord.cs" />
     <Compile Include="ClassToProgression.cs" />
     <Compile Include="Dismiss.cs" />
-	<Compile Include="BalanceFixes.cs" />
+    <Compile Include="BalanceFixes.cs" />
     <Compile Include="FakeClassLevel.cs" />
     <Compile Include="Features\AdvancedFighterOptions.cs" />
     <Compile Include="Features\AlchemistDiscoveries.cs" />
@@ -237,6 +251,7 @@
     <Compile Include="Features\Subschools.cs" />
     <Compile Include="Features\VersatilePerformance.cs" />
     <Compile Include="Features\WizardDiscoveries.cs" />
+    <Compile Include="HarmlessSaves.cs" />
     <Compile Include="MechanicsFixes\BloodlinesFix.cs" />
     <Compile Include="Classes\Mysteries\Ancestors.cs" />
     <Compile Include="Classes\Mysteries\MysteryEngine.cs" />
@@ -390,6 +405,8 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(ProjectDir)/Icons" "$(TargetDir)/Icons" /e /y /i /r</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(ProjectDir)/Icons" "$(TargetDir)/Icons" /e /y /i /r
+xcopy "$(ProjectDir)/WishBlackLists" "$(TargetDir)/WishBlackLists" /e /y /i /r
+xcopy "$(ProjectDir)/HarmlessSpells" "$(TargetDir)/HarmlessSpells" /e /y /i /r</PostBuildEvent>
   </PropertyGroup>
 </Project>

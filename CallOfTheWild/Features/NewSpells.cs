@@ -40,6 +40,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityModManagerNet;
 
 namespace CallOfTheWild
 {
@@ -213,6 +214,7 @@ namespace CallOfTheWild
         static public BlueprintAbility intellect_fortress;
 
         static public BlueprintAbility consecrate;
+        static public BlueprintAbilityAreaEffect consecrate_area;
         static public BlueprintAbility desecrate;
         static public BlueprintAbilityAreaEffect desecrate_area;
         static public BlueprintAbility animate_dead_lesser;
@@ -288,6 +290,8 @@ namespace CallOfTheWild
 
         static public BlueprintAbility weapon_of_awe;
         static public BlueprintAbility allied_cloak;
+
+        static public BlueprintAbility miracle;
 
 
         //binding_earth; ?
@@ -494,6 +498,34 @@ namespace CallOfTheWild
 
             createWeaponOfAwe();
             createAlliedCloak();
+
+
+
+            //createMiracle();
+        }
+
+
+        static void createMiracle()
+        {
+            var blacklist_guids = Helpers.readStringsfromFile(UnityModManager.modsPath + @"/CallOfTheWild/WishBlackLists/miracle_black_list.txt", ' ');
+            miracle = createWish("Miracle",
+                                 "Miracle",
+                                 "You don’t so much cast a miracle as request one. You state what you would like to have happen and request that your deity (or the power you pray to for spells) intercede.\n"
+                                 + "A miracle can do any of the following things.\n"
+                                 + "Duplicate any cleric spell of 8th level or lower.\n"
+                                 + "Duplicate any other spell of 7th level or lower.\n",
+                                 //+ "Undo the harmful effects of certain spells, such as feeblemind or insanity.\n"
+                                 //+ "Have any effect whose power level is in line with the above effects.\n",
+                                 LoadIcons.Image2Sprite.Create(@"AbilityIcons/Wish.png"),
+                                 library.Get<BlueprintSpellbook>("4673d19a0cf2fab4f885cc4d1353da33"),
+                                 UnitCommand.CommandType.Standard,
+                                 blacklist_guids,
+                                 AbilityType.Spell,
+                                 full_round: false);
+            miracle.AddComponent(Helpers.CreateSpellComponent(SpellSchool.Evocation));
+            miracle.AddComponent(Helpers.Create<SpellManipulationMechanics.WishSpell>());
+            miracle.AddToSpellList(Helpers.clericSpellList, 9);
+            Helpers.AddSpell(miracle);
         }
 
         static void createAlliedCloak()
@@ -522,6 +554,7 @@ namespace CallOfTheWild
                                                     Helpers.CreateSpellComponent(SpellSchool.Abjuration),
                                                     Common.createAbilitySpawnFx("c4d861e816edd6f4eab73c55a18fdadd", anchor: AbilitySpawnFxAnchor.SelectedTarget)
                                                     );
+            allied_cloak.AvailableMetamagic = Metamagic.Extend | Metamagic.Heighten | Metamagic.Quicken;
             allied_cloak.setMiscAbilityParametersSelfOnly();
             allied_cloak.AddToSpellList(Helpers.wizardSpellList, 3);
             allied_cloak.AddToSpellList(Helpers.bardSpellList, 3);
@@ -755,7 +788,7 @@ namespace CallOfTheWild
                                                 AbilityRange.Touch,
                                                 "3 rounds",
                                                 "",
-                                                Helpers.CreateRunActions(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(3), is_from_spell: true)),
+                                                Helpers.CreateRunActions(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(), is_from_spell: true, duration_seconds: 18)),
                                                 Helpers.CreateDeliverTouch(),
                                                 Helpers.CreateSpellDescriptor(SpellDescriptor.Acid),
                                                 Helpers.CreateSpellComponent(SpellSchool.Conjuration),
@@ -984,8 +1017,8 @@ namespace CallOfTheWild
 
             ghostbane_dirge.AddSpellAndScroll("fa34c6a083cb8f345be3bc4911b733ff");
             ghostbane_dirge_mass = Helpers.CreateAbility("GhostbaneDirgeMassAbility",
-                                        buff.Name,
-                                        buff.Description,
+                                        "Ghostbane Dirge, Mass",
+                                        "This spell functions as ghostbane dirge, except that it affects multiple targets.\n" + ghostbane_dirge.Name + ": " + ghostbane_dirge.Description,
                                         "",
                                         buff.Icon,
                                         AbilityType.Spell,
@@ -1200,11 +1233,12 @@ namespace CallOfTheWild
                                                UnitCommand.CommandType.Standard,
                                                AbilityRange.Touch,
                                                Helpers.tenMinPerLevelDuration,
-                                               "",
+                                               HarmlessSaves.HarmlessSaves.will_harmless,
                                                Helpers.CreateRunActions(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(Helpers.CreateContextValue(AbilityRankType.Default), DurationRate.TenMinutes), is_from_spell: true)),
                                                Helpers.CreateSpellComponent(SpellSchool.Illusion),
                                                Helpers.CreateContextRankConfig(),
-                                               Common.createAbilitySpawnFx("790eb82d267bf0749943fba92b7953c2", anchor: AbilitySpawnFxAnchor.SelectedTarget)
+                                               Common.createAbilitySpawnFx("790eb82d267bf0749943fba92b7953c2", anchor: AbilitySpawnFxAnchor.SelectedTarget),
+                                               Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                );
             invigorate.setMiscAbilityParametersTouchFriendly();
             invigorate.AvailableMetamagic = Metamagic.Heighten | Metamagic.Quicken | Metamagic.Reach | Metamagic.Extend;
@@ -1219,13 +1253,14 @@ namespace CallOfTheWild
                                                    UnitCommand.CommandType.Standard,
                                                    AbilityRange.Personal,
                                                    Helpers.tenMinPerLevelDuration,
-                                                   "",
+                                                   HarmlessSaves.HarmlessSaves.will_harmless,
                                                    Helpers.CreateRunActions(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(Helpers.CreateContextValue(AbilityRankType.Default), DurationRate.TenMinutes), is_from_spell: true)),
                                                    Helpers.CreateSpellComponent(SpellSchool.Illusion),
                                                    Common.createAbilitySpawnFx("790eb82d267bf0749943fba92b7953c2", anchor: AbilitySpawnFxAnchor.SelectedTarget),
                                                    Helpers.Create<SharedSpells.CannotBeShared>(),
                                                    Helpers.CreateContextRankConfig(),
-                                                    Helpers.CreateAbilityTargetsAround(15.Feet(), TargetType.Ally)
+                                                    Helpers.CreateAbilityTargetsAround(15.Feet(), TargetType.Ally),
+                                                    Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                    );
             invigorate_mass.setMiscAbilityParametersSelfOnly();
             invigorate_mass.AvailableMetamagic = Metamagic.Heighten | Metamagic.Quicken | Metamagic.Extend;
@@ -1743,6 +1778,8 @@ namespace CallOfTheWild
                 shadow_s.Parent = base_ability;
                 shadow_s.RemoveComponents<SpellListComponent>();
                 shadow_s.RemoveComponents<SpellComponent>();
+                shadow_s.RemoveComponents<HarmlessSaves.HarmlessSpell>();
+                shadow_s.RemoveComponents<HarmlessSaves.HarmlessHealSpell>();
                 shadow_s.AddComponent(Helpers.CreateSpellComponent(SpellSchool.Illusion));
                 Common.addSpellDescriptor(shadow_s, descriptor, false);
                 shadow_s.SetNameDescription(base_ability.Name + " (" + s.Name + ")",
@@ -1756,6 +1793,8 @@ namespace CallOfTheWild
                     shadow_sticky_touch.RemoveComponents<SpellListComponent>();
                     shadow_sticky_touch.RemoveComponents<SpellComponent>();
                     shadow_sticky_touch.AddComponent(Helpers.CreateSpellComponent(SpellSchool.Illusion));
+                    shadow_sticky_touch.RemoveComponents<HarmlessSaves.HarmlessSpell>();
+                    shadow_sticky_touch.RemoveComponents<HarmlessSaves.HarmlessHealSpell>();
                     Common.addSpellDescriptor(shadow_sticky_touch, descriptor);
                     shadow_s.ReplaceComponent<AbilityEffectStickyTouch>(a => a.TouchDeliveryAbility = shadow_sticky_touch);
                 }
@@ -2307,7 +2346,16 @@ namespace CallOfTheWild
 
         static void createOrbOfTheVoid()
         {
+
             var icon = LoadIcons.Image2Sprite.Create(@"AbilityIcons/Metamixing.png");
+
+            var caster_dmg_done = Helpers.CreateBuff("OrbOfTheVoidCasterDamageDoneBuff",
+                                                      "Orb of the Void (Affected This Turn)",
+                                                      "",
+                                                      "",
+                                                      icon,
+                                                      null
+                                                      );
 
             var orb_fx_buff = library.CopyAndAdd<BlueprintBuff>("1eb1c1aab1b319c43b06b40c4800f16c", "OrbOfTheVoidFxBuff", "");
             orb_fx_buff.SetBuffFlags(BuffFlags.HiddenInUi);
@@ -2324,6 +2372,9 @@ namespace CallOfTheWild
                                                    Common.createContextActionApplyBuff(undead_buff, Helpers.CreateContextDuration(1, DurationRate.Hours), is_from_spell: true),
                                                    Helpers.CreateActionSavingThrow(SavingThrowType.Fortitude, Helpers.CreateConditionalSaved(null, dmg))
                                                    );
+            effect = Helpers.CreateConditional(Common.createContextConditionCasterHasFact(caster_dmg_done), new GameAction[0],
+                                               new GameAction[] { effect, Common.createContextActionApplyBuffToCaster(caster_dmg_done, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 6) }
+                                               );
             var dmg_action = Helpers.CreateActionList(effect);
             area.ComponentsArray = new BlueprintComponent[]
             {
@@ -2363,7 +2414,8 @@ namespace CallOfTheWild
                                                      "",
                                                      Helpers.CreateRunActions(spawn_area),
                                                      Common.createAbilityAoERadius(2.Feet(), TargetType.Any),
-                                                     Helpers.CreateSpellComponent(SpellSchool.Necromancy)
+                                                     Helpers.CreateSpellComponent(SpellSchool.Necromancy),
+                                                     Common.createAbilityCasterHasNoFacts(caster_dmg_done)
                                                      );
 
             move_ability.setMiscAbilityParametersRangedDirectional();
@@ -2477,7 +2529,7 @@ namespace CallOfTheWild
             var apply_dot = Common.createContextActionApplyBuff(dot, Helpers.CreateContextDuration(Helpers.CreateContextValue(AbilityRankType.Default), DurationRate.Rounds), is_from_spell: true);
             pain_strike = Helpers.CreateAbility("PainStrikeAbility",
                                                 "Pain Strike",
-                                                "Pain strike racks the targeted creature with agony, inflicting 1d6 points of damage per round for 1 round per level (maximum 10 rounds). Additionally, the affected creature is sickened for the spell’s duration.",
+                                                $"Pain strike racks the targeted creature with agony, inflicting 1d{BalanceFixes.getDamageDieString(DiceType.D6)} points of damage per round for 1 round per level (maximum 10 rounds). Additionally, the affected creature is sickened for the spell’s duration.",
                                                 "",
                                                 sickened.Icon,
                                                 AbilityType.Spell,
@@ -3284,7 +3336,7 @@ namespace CallOfTheWild
                                                               );
             consecreate_undead_buff.SetBuffFlags(BuffFlags.HiddenInUi);
 
-            var consecrate_area = library.CopyAndAdd<BlueprintAbilityAreaEffect>("c08bd33a377d5014a81be94e33ec8ce4", "ConsecrateArea", "");
+            consecrate_area = library.CopyAndAdd<BlueprintAbilityAreaEffect>("c08bd33a377d5014a81be94e33ec8ce4", "ConsecrateArea", "");
             consecrate_area.Size = 20.Feet();
             consecrate_area.Fx = Common.createPrefabLink("bbd6decdae32bce41ae8f06c6c5eb893"); //holy holy aoe
             consecrate_area.ComponentsArray = new BlueprintComponent[]
@@ -3409,7 +3461,8 @@ namespace CallOfTheWild
             animate_dead.MaterialComponent = library.Get<BlueprintAbility>("7c5d556b9a5883048bf030e20daebe31").MaterialComponent.CloneObject();
             animate_dead.MaterialComponent.Count = 6;
             animate_dead_lesser.MaterialComponent = library.Get<BlueprintAbility>("c66e86905f7606c4eaa5c774f0357b2b").MaterialComponent.CloneObject();
-            animate_dead_lesser.MaterialComponent.Count = 3; 
+            animate_dead_lesser.MaterialComponent.Count = 3;
+            animate_dead_lesser.AvailableMetamagic = Metamagic.Heighten | Metamagic.Quicken | Metamagic.Extend;
             //fix jaethal ability
             var summon_undead = library.Get<BlueprintAbility>("4c1556984f24e5c4282c6fcda832b7b2");
             summon_undead.LocalizedDuration = animate_dead.LocalizedDuration;
@@ -4309,7 +4362,7 @@ namespace CallOfTheWild
             var dmg_action = Helpers.CreateActionList(Helpers.CreateConditional(Common.createContextConditionCasterHasFact(caster_dmg_done),
                                                       new GameAction[0],
                                                       new GameAction[]{dmg_save_action,
-                                                                       Common.createContextActionApplyBuffToCaster(caster_dmg_done, Helpers.CreateContextDuration(1), dispellable: false)
+                                                                       Common.createContextActionApplyBuffToCaster(caster_dmg_done, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 6)
                                                                        }
                                                                        )
                                           );
@@ -4421,7 +4474,7 @@ namespace CallOfTheWild
             var dmg_action = Helpers.CreateActionList(Helpers.CreateConditional(Common.createContextConditionCasterHasFact(caster_dmg_done),
                                                      new GameAction[0], 
                                                      new GameAction[]{Common.createContextActionSavingThrow(SavingThrowType.Reflex, Helpers.CreateActionList(Helpers.CreateConditionalSaved(null, dmg))),
-                                                                        Common.createContextActionApplyBuffToCaster(caster_dmg_done, Helpers.CreateContextDuration(1), dispellable: false)
+                                                                        Common.createContextActionApplyBuffToCaster(caster_dmg_done, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 6)
                                                                        }
                                                                        )
                                                       );
@@ -4862,11 +4915,12 @@ namespace CallOfTheWild
                                         UnitCommand.CommandType.Standard,
                                         AbilityRange.Touch,
                                         Helpers.minutesPerLevelDuration,
-                                        "",
+                                        HarmlessSaves.HarmlessSaves.will_harmless,
                                         Helpers.CreateRunActions(apply_buff),
                                         spawn_fx,
                                         Helpers.CreateContextRankConfig(),
-                                        Helpers.CreateSpellComponent(SpellSchool.Transmutation)
+                                        Helpers.CreateSpellComponent(SpellSchool.Transmutation),
+                                        Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                         );
             fly.setMiscAbilityParametersTouchFriendly();
             fly.AvailableMetamagic = Metamagic.Extend | Metamagic.Heighten | Metamagic.Quicken | Metamagic.Reach;
@@ -4889,12 +4943,13 @@ namespace CallOfTheWild
                                         UnitCommand.CommandType.Standard,
                                         AbilityRange.Close,
                                         Helpers.tenMinPerLevelDuration,
-                                        "",
+                                        HarmlessSaves.HarmlessSaves.will_harmless,
                                         Helpers.CreateRunActions(apply_buff10),
                                         spawn_fx,
                                         Helpers.CreateContextRankConfig(),
                                         Helpers.CreateSpellComponent(SpellSchool.Transmutation),
-                                        Helpers.CreateAbilityTargetsAround(30.Feet(), TargetType.Ally)
+                                        Helpers.CreateAbilityTargetsAround(30.Feet(), TargetType.Ally),
+                                        Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                         );
             fly_mass.setMiscAbilityParametersRangedDirectional();
             fly_mass.AvailableMetamagic = Metamagic.Extend | Metamagic.Heighten | Metamagic.Quicken | Metamagic.Reach;
@@ -5674,12 +5729,13 @@ namespace CallOfTheWild
                                                      UnitCommand.CommandType.Standard,
                                                      AbilityRange.Touch,
                                                      Helpers.minutesPerLevelDuration,
-                                                     "",
+                                                     HarmlessSaves.HarmlessSaves.will_harmless,
                                                      Helpers.CreateRunActions(apply_buff),
                                                      Helpers.CreateContextRankConfig(type: AbilityRankType.StatBonus),
                                                      Helpers.CreateSpellComponent(SpellSchool.Transmutation),
                                                      Common.createAbilitySpawnFx("cf69c140c7d4d3c49a37e9202c5b835e", anchor: AbilitySpawnFxAnchor.SelectedTarget), //bless weapon
-                                                     Helpers.Create<NewMechanics.AbilitTargetManufacturedWeapon>(a => a.off_hand = oh)
+                                                     Helpers.Create<NewMechanics.AbilitTargetManufacturedWeapon>(a => a.off_hand = oh),
+                                                     Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                      );
                 magic_weapon_v.setMiscAbilityParametersTouchFriendly();
                 magic_weapon_v.AvailableMetamagic = Metamagic.Heighten | Metamagic.Quicken | Metamagic.Extend;
@@ -5693,12 +5749,13 @@ namespace CallOfTheWild
                                                              UnitCommand.CommandType.Standard,
                                                              AbilityRange.Touch,
                                                              Helpers.hourPerLevelDuration,
-                                                             "",
+                                                             HarmlessSaves.HarmlessSaves.will_harmless,
                                                              Helpers.CreateRunActions(apply_greater_buff),
                                                              Helpers.CreateContextRankConfig(type: AbilityRankType.StatBonus),
                                                              Helpers.CreateSpellComponent(SpellSchool.Transmutation),
                                                              Common.createAbilitySpawnFx("cf69c140c7d4d3c49a37e9202c5b835e", anchor: AbilitySpawnFxAnchor.SelectedTarget), //bless weapon
-                                                             Helpers.Create<NewMechanics.AbilitTargetManufacturedWeapon>(a => a.off_hand = oh)
+                                                             Helpers.Create<NewMechanics.AbilitTargetManufacturedWeapon>(a => a.off_hand = oh),
+                                                             Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                              );
                 magic_weapon_greater_v.setMiscAbilityParametersTouchFriendly();
                 magic_weapon_greater_v.AvailableMetamagic = magic_weapon_v.AvailableMetamagic;
@@ -5834,11 +5891,12 @@ namespace CallOfTheWild
                                                     UnitCommand.CommandType.Standard,
                                                     AbilityRange.Touch,
                                                     Helpers.roundsPerLevelDuration,
-                                                    "",
+                                                    HarmlessSaves.HarmlessSaves.will_harmless,
                                                     Helpers.CreateRunActions(apply_buff),
                                                     Helpers.Create<NewMechanics.AbilityShowIfCasterHasFact2>(a => a.UnitFact = judgment_buff),
                                                     Helpers.CreateSpellComponent(SpellSchool.Divination),
-                                                    Helpers.CreateContextRankConfig()
+                                                    Helpers.CreateContextRankConfig(),
+                                                    Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                     );
                 ability.setMiscAbilityParametersTouchFriendly(false);
                 ability.AvailableMetamagic = Metamagic.Extend | Metamagic.Heighten | Metamagic.Quicken | Metamagic.Reach;
@@ -5886,11 +5944,12 @@ namespace CallOfTheWild
                                                             UnitCommand.CommandType.Standard,
                                                             AbilityRange.Touch,
                                                             Helpers.roundsPerLevelDuration,
-                                                            "",
+                                                            HarmlessSaves.HarmlessSaves.will_harmless,
                                                             Helpers.CreateRunActions(apply_greater_buff),
                                                             Helpers.CreateSpellComponent(SpellSchool.Divination),
                                                             Helpers.CreateContextRankConfig(),
-                                                            Common.createAbilityCasterHasFacts(j_buffs.ToArray())
+                                                            Common.createAbilityCasterHasFacts(j_buffs.ToArray()),
+                                                            Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                             );
             lend_judgement_greater.setMiscAbilityParametersTouchFriendly(false);
             lend_judgement_greater.AvailableMetamagic = Metamagic.Extend | Metamagic.Heighten | Metamagic.Quicken | Metamagic.Reach;
@@ -6243,7 +6302,8 @@ namespace CallOfTheWild
                                           Helpers.CreateSpellDescriptor(SpellDescriptor.Paralysis | SpellDescriptor.MovementImpairing),
                                           Common.createAuraFeatureComponent(aura_buff)
                                           );
-
+            var primary_effect = Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(2, DurationRate.Rounds, DiceType.D6, 1));
+            var primary_effect_saved = Helpers.CreateConditionalSaved(null, primary_effect);
             var ability = Helpers.CreateAbility("GhoulTouchAbility",
                                                 "Ghoul Touch",
                                                 "Imbuing you with negative energy, this spell allows you to paralyze a single living humanoid for the duration of the spell with a successful melee touch attack.\n" +
@@ -6255,7 +6315,7 @@ namespace CallOfTheWild
                                                 AbilityRange.Touch,
                                                 "1d6+2 rounds",
                                                 Helpers.fortNegates,
-                                                Helpers.CreateRunActions(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(2, DurationRate.Rounds, DiceType.D6, 1))),
+                                                Helpers.CreateRunActions(SavingThrowType.Fortitude, primary_effect_saved),
                                                 Common.createAbilitySpawnFx("cbfe312cb8e63e240a859efaad8e467c", anchor: AbilitySpawnFxAnchor.SelectedTarget),
                                                 Helpers.CreateDeliverTouch(),
                                                 Helpers.CreateSpellComponent(SpellSchool.Necromancy)
@@ -7196,7 +7256,7 @@ namespace CallOfTheWild
             var demoralize = (dazzling_display.GetComponent<AbilityEffectRunAction>().Actions.Actions[0] as Demoralize);
 
 
-            var dmg = Helpers.CreateActionDealDamage(DamageEnergyType.Fire, Helpers.CreateContextDiceValue(DiceType.D10, 1, 0));
+            var dmg = Helpers.CreateActionDealDamage(DamageEnergyType.Fire, Helpers.CreateContextDiceValue(BalanceFixes.getDamageDie(DiceType.D10), 1, 0));
             var apply_burn = Common.createContextActionApplyBuff(burn1d6, Helpers.CreateContextDuration(), is_permanent: true);
 
             var effect = Common.createContextActionSavingThrow(SavingThrowType.Reflex, Helpers.CreateActionList(dmg, Helpers.CreateConditionalSaved(null, apply_burn)));
@@ -7204,7 +7264,7 @@ namespace CallOfTheWild
 
             blistering_invective = Helpers.CreateAbility("BlisteringInvectiveAbility",
                                                          "Blistering Invective",
-                                                         "You unleash an insulting tirade so vicious and spiteful that enemies who hear it are physically scorched by your fury. When you cast this spell, make an Intimidate check to demoralize each enemy within 30 feet of you. Enemies that are demoralized this way take 1d10 points of fire damage and must succeed at a Reflex save or catch fire.",
+                                                         $"You unleash an insulting tirade so vicious and spiteful that enemies who hear it are physically scorched by your fury. When you cast this spell, make an Intimidate check to demoralize each enemy within 30 feet of you. Enemies that are demoralized this way take 1d{BalanceFixes.getDamageDieString(DiceType.D10)} points of fire damage and must succeed at a Reflex save or catch fire.",
                                                          "",
                                                          icon,
                                                          AbilityType.Spell,
@@ -7399,7 +7459,7 @@ namespace CallOfTheWild
             burst_of_radiance.SetDescription($"This spell fills the area with a brilliant flash of shimmering light. Creatures in the area are blinded for 1d4 rounds, or dazzled for 1d4 rounds if they succeed at a Reflex save. Evil creatures in the area of the burst take 1d{BalanceFixes.getDamageDieString(DiceType.D4)} points of damage per caster level (max 5d{BalanceFixes.getDamageDieString(DiceType.D4)}), whether they succeed at the Reflex save or not.");
             burst_of_radiance.LocalizedSavingThrow = Helpers.CreateString("BurstOfRadianceAbility.SavingThrow", "Reflex partial");
             burst_of_radiance.Range = AbilityRange.Long;
-            burst_of_radiance.AvailableMetamagic = Metamagic.Quicken | Metamagic.Heighten | Metamagic.Maximize | Metamagic.Empower | (Metamagic)MetamagicFeats.MetamagicExtender.IntensifiedGeneral  | (Metamagic)MetamagicFeats.MetamagicExtender.Dazing | (Metamagic)MetamagicFeats.MetamagicExtender.Persistent | (Metamagic)MetamagicFeats.MetamagicExtender.Piercing;
+            burst_of_radiance.AvailableMetamagic = Metamagic.Quicken | Metamagic.Heighten | Metamagic.Maximize | Metamagic.Empower | (Metamagic)MetamagicFeats.MetamagicExtender.IntensifiedGeneral  | (Metamagic)MetamagicFeats.MetamagicExtender.Dazing | (Metamagic)MetamagicFeats.MetamagicExtender.Persistent | (Metamagic)MetamagicFeats.MetamagicExtender.Piercing | (Metamagic)MetamagicFeats.MetamagicExtender.Selective;
             burst_of_radiance.ReplaceComponent<SpellDescriptorComponent>(Helpers.CreateSpellDescriptor(SpellDescriptor.Good | SpellDescriptor.Blindness | SpellDescriptor.SightBased));
 
             var dazzled = library.Get<BlueprintBuff>("df6d1025da07524429afbae248845ecc");
@@ -7724,7 +7784,7 @@ namespace CallOfTheWild
                                                     Helpers.CreateSpellComponent(SpellSchool.Evocation)
                                                     );
             archons_trumpet.setMiscAbilityParametersRangedDirectional();
-            archons_trumpet.AvailableMetamagic = Metamagic.Empower | Metamagic.Maximize | Metamagic.Quicken | Metamagic.Heighten | (Metamagic)MetamagicFeats.MetamagicExtender.Persistent | (Metamagic)MetamagicFeats.MetamagicExtender.Piercing;
+            archons_trumpet.AvailableMetamagic = Metamagic.Empower | Metamagic.Maximize | Metamagic.Quicken | Metamagic.Heighten | (Metamagic)MetamagicFeats.MetamagicExtender.Persistent | (Metamagic)MetamagicFeats.MetamagicExtender.Piercing | (Metamagic)MetamagicFeats.MetamagicExtender.Selective;
             archons_trumpet.SpellResistance = true;
 
             archons_trumpet.AddToSpellList(Helpers.bardSpellList, 5);
@@ -7868,7 +7928,7 @@ namespace CallOfTheWild
                                                      Helpers.CreateAbilityTargetsAround(10.Feet(), TargetType.Any),
                                                      Helpers.CreateContextRankConfig(type: AbilityRankType.DamageDice, max: 15, feature: MetamagicFeats.intensified_metamagic)
                                                      );
-            explosion_of_rot.AvailableMetamagic = Metamagic.Empower | Metamagic.Maximize | Metamagic.Heighten | Metamagic.Reach | Metamagic.Quicken | (Metamagic)MetamagicFeats.MetamagicExtender.IntensifiedGeneral  | (Metamagic)MetamagicFeats.MetamagicExtender.Dazing | (Metamagic)MetamagicFeats.MetamagicExtender.Persistent | (Metamagic)MetamagicFeats.MetamagicExtender.Piercing;
+            explosion_of_rot.AvailableMetamagic = Metamagic.Empower | Metamagic.Maximize | Metamagic.Heighten | Metamagic.Reach | Metamagic.Quicken | (Metamagic)MetamagicFeats.MetamagicExtender.IntensifiedGeneral  | (Metamagic)MetamagicFeats.MetamagicExtender.Dazing | (Metamagic)MetamagicFeats.MetamagicExtender.Persistent | (Metamagic)MetamagicFeats.MetamagicExtender.Piercing | (Metamagic)MetamagicFeats.MetamagicExtender.Selective;
             explosion_of_rot.setMiscAbilityParametersRangedDirectional();
             explosion_of_rot.SpellResistance = true;
 
@@ -7895,7 +7955,7 @@ namespace CallOfTheWild
                                                           );
 
             var description = "You strike the ground and unleash a tremor of seismic force, hurling up earth, rock, and sand.\n"
-                              + $"You choose whether the earth tremor affects a 30 - foot line, a 20 - foot cone - shaped spread, or a 10 - foot - radius spread centered on you. The space you occupy is not affected by earth tremor.the area you choose becomes dense rubble that costs 2 squares of movement to enter. Dense rubble and is considered as difficult terrain. Creatures on the ground in the area take 1d{BalanceFixes.getDamageDieString(DiceType.D4)} points of bludgeoning damage per caster level you have (maximum 10d{BalanceFixes.getDamageDieString(DiceType.D4)}) or half damage on a successful save. Medium or smaller creatures that fail their saves are knocked prone.\n"
+                              + $"You choose whether the earth tremor affects a 30 - foot line, a 20 - foot cone - shaped spread, or a 10 - foot - radius spread centered on you. The space you occupy is not affected by earth tremor. The area you choose becomes dense rubble and is considered as difficult terrain. Creatures on the ground in the area take 1d{BalanceFixes.getDamageDieString(DiceType.D4)} points of bludgeoning damage per caster level you have (maximum 10d{BalanceFixes.getDamageDieString(DiceType.D4)}) or half damage on a successful save. Medium or smaller creatures that fail their saves are knocked prone.\n"
                               + "This spell can be cast only on a surface of earth, sand, or stone. It has no effect if you are in a wooden or metal structure or if you are not touching the ground.";
 
             var spawn_in_cone = Helpers.Create<NewMechanics.ContextActionSpawnAreaEffectMultiple>(c =>
@@ -8501,6 +8561,8 @@ namespace CallOfTheWild
             keen_edge.AddToSpellList(Helpers.magusSpellList, 3);
             keen_edge.AddToSpellList(Helpers.wizardSpellList, 3);
 
+            
+
             keen_edge.AddSpellAndScroll("fbdd06f0414c3ef458eb4b2a8072e502");
         }
 
@@ -8558,7 +8620,7 @@ namespace CallOfTheWild
         {
             var improved_uncanny_dodge = library.Get<BlueprintFeature>("485a18c05792521459c7d06c63128c79");
             countless_eyes = library.CopyAndAdd<BlueprintAbility>("c927a8b0cd3f5174f8c0b67cdbfde539", "CountlessEyesAbility", "");
-
+            countless_eyes.LocalizedSavingThrow = Helpers.CreateString(countless_eyes.name + ".LocalizedSavingThrow", HarmlessSaves.HarmlessSaves.will_harmless);
             countless_eyes.SetName("Countless Eyes");
             countless_eyes.SetDescription("The target sprouts extra eyes all over its body, including on the back of its head. It gains all-around vision and cannot be flanked.");
             countless_eyes.LocalizedDuration = Helpers.CreateString("CountlessEyes.Duration", Helpers.hourPerLevelDuration);
@@ -8579,6 +8641,8 @@ namespace CallOfTheWild
             countless_eyes.AddToSpellList(Helpers.alchemistSpellList, 3);
             countless_eyes.AddToSpellList(Helpers.inquisitorSpellList, 3);
             countless_eyes.AddToSpellList(Helpers.wizardSpellList, 3);
+            countless_eyes.RemoveComponents<HarmlessSaves.HarmlessSpell>();
+            countless_eyes.AddComponent(Helpers.Create<HarmlessSaves.HarmlessSpell>());
 
             countless_eyes.AddSpellAndScroll("de172db6e10f6d54896cb6a48b9fe8f7");
         }
@@ -9039,10 +9103,11 @@ namespace CallOfTheWild
                                                Kingmaker.UnitLogic.Commands.Base.UnitCommand.CommandType.Standard,
                                                AbilityRange.Touch,
                                                Helpers.minutesPerLevelDuration,
-                                               "",
+                                               HarmlessSaves.HarmlessSaves.fort_harmless,
                                                Helpers.CreateRunActions(apply_buff),
                                                magic_fang.GetComponent<AbilitySpawnFx>(),
-                                               Helpers.CreateSpellComponent(SpellSchool.Transmutation)
+                                               Helpers.CreateSpellComponent(SpellSchool.Transmutation),
+                                               Helpers.Create<HarmlessSaves.HarmlessSpell>(h => h.save_type = SavingThrowType.Fortitude)
                                                );
             strong_jaw.AvailableMetamagic = magic_fang.AvailableMetamagic;
             strong_jaw.setMiscAbilityParametersTouchFriendly();
@@ -9585,12 +9650,13 @@ namespace CallOfTheWild
                                                Kingmaker.UnitLogic.Commands.Base.UnitCommand.CommandType.Standard,
                                                AbilityRange.Personal,
                                                Helpers.minutesPerLevelDuration,
-                                               "",
+                                               HarmlessSaves.HarmlessSaves.will_harmless,
                                                bless_weapon.GetComponent<AbilitySpawnFx>(),
                                                Helpers.CreateContextRankConfig(),
                                                Helpers.CreateRunActions(apply_buff),
                                                Helpers.CreateSpellComponent(Kingmaker.Blueprints.Classes.Spells.SpellSchool.Transmutation),
-                                               Common.createAbilitTargetMainWeaponCheck(shillelagh_types[0].Category, shillelagh_types[1].Category)
+                                               Common.createAbilitTargetMainWeaponCheck(shillelagh_types[0].Category, shillelagh_types[1].Category),
+                                               Helpers.Create<HarmlessSaves.HarmlessSpell>()
                                                );
             shillelagh.NeedEquipWeapons = true;
             shillelagh.CanTargetSelf = true;
@@ -9689,6 +9755,8 @@ namespace CallOfTheWild
 
 
                 var flame_blade_v = library.CopyAndAdd<BlueprintAbility>(shillelagh.AssetGuid, (oh ? "OffHand" : "MainHand") + prefix + "Ability", "");
+                flame_blade_v.LocalizedSavingThrow = Helpers.savingThrowNone;
+                flame_blade_v.RemoveComponents<HarmlessSaves.HarmlessSpell>();
                 flame_blade_v.setMiscAbilityParametersSelfOnly();
                 flame_blade_v.NeedEquipWeapons = false;
                 flame_blade_v.SetIcon(icon);
@@ -10102,6 +10170,109 @@ namespace CallOfTheWild
         }
 
 
+        static public BlueprintAbility createWish(string name_prefix, string display_name, string description, UnityEngine.Sprite icon, BlueprintSpellbook primary_spellbook,
+                                     UnitCommand.CommandType command_type,
+                                     string[] blacklist_guids,
+                                     AbilityType ability_type = AbilityType.Spell, 
+                                     BlueprintComponent[] additional_components = null,
+                                     bool allow_spells_with_material_components = true,
+                                     bool full_round = true, int primary_spellbook_level = 8, int secondary_spellbook_level = 7)
+        {
+            if (secondary_spellbook_level > primary_spellbook_level)
+            {
+                throw Main.Error($"primary_spellbook_level < secondary_spellbook_level");
+            }
+            var spellbooks = library.GetAllBlueprints().OfType<BlueprintSpellbook>();
+            //create spell list of all concerned spells and pick their lowest levels
+            Dictionary<string, int> spell_guid_level_map = new Dictionary<string, int>();
+
+            foreach (var spellbook in spellbooks)
+            {
+                if (spellbook == Summoner.summoner_class?.Spellbook)
+                {
+                    continue;
+                }
+                int max_level = spellbook == primary_spellbook ? primary_spellbook_level : secondary_spellbook_level;
+                max_level = Math.Min(max_level, (int)spellbook.SpellList?.SpellsByLevel?.Length - 1);
+                for (int i = 1; i <= max_level; i++)
+                {
+                    foreach (var spell in spellbook.SpellList.SpellsByLevel[i].Spells)
+                    {
+                        if (!spell_guid_level_map.ContainsKey(spell.AssetGuid))
+                        {
+                            spell_guid_level_map.Add(spell.AssetGuid, i);
+                        }
+                        else if (spell_guid_level_map[spell.AssetGuid] > i)
+                        {
+                            spell_guid_level_map[spell.AssetGuid] = i;
+                        }
+                    }
+                }
+            }
+
+
+            List<BlueprintAbility>[] spells_per_level = new List<BlueprintAbility>[primary_spellbook_level];
+            for (int i = 0; i < spells_per_level.Length; i++)
+            {
+                spells_per_level[i] = new List<BlueprintAbility>();
+            }
+            List<BlueprintAbility> wish_variants = new List<BlueprintAbility>();
+            foreach (var entry in spell_guid_level_map)
+            {
+                var spell = library.Get<BlueprintAbility>(entry.Key);
+                if (spell.MaterialComponent.Item == null || allow_spells_with_material_components)
+                {
+                    spells_per_level[entry.Value - 1].Add(library.Get<BlueprintAbility>(entry.Key));
+                }
+            }
+
+            var all_spells = spells_per_level.Aggregate(new List<BlueprintAbility>(), (list, next) => { list.AddRange(next); return list; }).ToArray();
+
+            var wish = Helpers.CreateAbility(name_prefix + "Ability",
+                                            display_name,
+                                            description,
+                                            "",
+                                            icon,
+                                            ability_type,
+                                            command_type,
+                                            AbilityRange.Personal,
+                                            "",
+                                            "");
+            Helpers.SetField(wish, "m_IsFullRoundAction", full_round);
+
+            var spells_to_process = all_spells.Where(s => !NewSpells.getShadowSpells().Contains(s)
+                                                          && s.GetComponent<SpellManipulationMechanics.WishSpell>() == null
+                                                          && !blacklist_guids.Contains(s.AssetGuid)
+                                                          && !(s.HasVariants && s.Variants.Any(v => blacklist_guids.Contains(v.AssetGuid)))
+                                                          ).ToArray();
+            var variant_spells = Common.CreateAbilityVariantsReplace(wish, name_prefix,
+                                                                                (s, v) => {
+                                                                                    s.Type = ability_type;
+                                                                                    s.ActionType = command_type;
+                                                                                    if (full_round)
+                                                                                    {
+                                                                                        Helpers.SetField(s, "m_IsFullRoundAction", true);
+                                                                                    }
+                                                                                    if (additional_components != null)
+                                                                                    {
+                                                                                        s.AddComponents(additional_components);
+                                                                                    }
+                                                                                    Main.logger.Log("Creating Wish: " + v.AssetGuid + " " + v.name);
+                                                                                },
+                                                                                ability_type == AbilityType.Spell || ability_type == AbilityType.SpellLike,
+                                                                                spells_to_process
+                                                                                );
+            wish.AddComponent(Helpers.CreateAbilityVariants(wish, variant_spells));
+
+            foreach (var s in variant_spells)
+            {
+                wish.AvailableMetamagic = wish.AvailableMetamagic | s.AvailableMetamagic;
+            }
+            
+            return wish;
+        }
+
+
         static public BlueprintAbility[] createWishSpellLevelVariants(string name_prefix, string display_name, string description,  UnityEngine.Sprite icon, BlueprintSpellbook primary_spellbook,
                                              UnitCommand.CommandType command_type, AbilityType ability_type = AbilityType.Spell, BlueprintComponent[] additional_components = null,
                                              bool allow_metamagic = true, bool allow_spells_with_material_components = true, 
@@ -10179,7 +10350,7 @@ namespace CallOfTheWild
                 }
 
                 var variant_spells = Common.CreateAbilityVariantsReplace(wish_variant, name_prefix + (i + 1).ToString(),
-                                                                                    s => {
+                                                                                    (s, v) => {
                                                                                         s.Type = ability_type;
                                                                                         s.ActionType = command_type;
                                                                                         if (full_round)
@@ -10196,7 +10367,7 @@ namespace CallOfTheWild
                                                                                         }
                                                                                     },
                                                                                     ability_type == AbilityType.Spell || ability_type == AbilityType.SpellLike,
-                                                                                  spells_per_level[i].Where(s => !NewSpells.getShadowSpells().Contains(s)).ToArray()
+                                                                                  spells_per_level[i].Where(s => !NewSpells.getShadowSpells().Contains(s) && s.GetComponent<SpellManipulationMechanics.WishSpell>() == null).ToArray()
                                                                                   );
                 wish_variant.AddComponent(Helpers.CreateAbilityVariants(wish_variant, variant_spells));
                 wish_variants.Add(wish_variant);
@@ -10245,8 +10416,10 @@ namespace CallOfTheWild
 
             var air_subtype = library.Get<BlueprintFeature>("dd3d0c7f4f57f304cbdbb68170b1b775");
             air_subtype.AddComponent(Helpers.CreateAddFact(immunity_to_wind));
-
         }
+
+
+        
 
 
         static public BlueprintAbility[] getShadowSpells()

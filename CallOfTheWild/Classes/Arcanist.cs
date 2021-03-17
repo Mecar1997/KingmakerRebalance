@@ -139,6 +139,12 @@ namespace CallOfTheWild
         static public BlueprintFeatureSelection school_understanding;
         static public BlueprintFeature item_bond;
 
+        static public BlueprintArchetype spell_specialist;
+        static public BlueprintParametrizedFeature[] signature_spell = new BlueprintParametrizedFeature[9];
+        static public BlueprintFeatureSelection[] signature_spell_selection = new BlueprintFeatureSelection[9];
+        static public BlueprintFeature dismiss;
+        static public BlueprintFeature spell_bender;
+
 
         internal static void createArcanistClass()
         {
@@ -186,12 +192,139 @@ namespace CallOfTheWild
             createUnletteredArcanist();
             createOccultist();
             createCollegiateArcanist();
+            createSpellSpecialist();
 
-            arcanist_class.Archetypes = new BlueprintArchetype[] { school_savant_archetype, blood_arcanist_archetype, unlettered_arcanist_archetype, occultist, collegiate_arcanist };
+            arcanist_class.Archetypes = new BlueprintArchetype[] { school_savant_archetype, blood_arcanist_archetype, unlettered_arcanist_archetype, occultist, collegiate_arcanist, spell_specialist };
             createExploiterWizard();
             createArcanistFeats();
             addToPrestigeClasses();
             createSchoolUnderstanding();
+        }
+
+
+        static void createSpellSpecialist()
+        {
+            spell_specialist = Helpers.Create<BlueprintArchetype>(a =>
+            {
+                a.name = "SpellSpecialistArcanistArchetype";
+                a.LocalizedName = Helpers.CreateString($"{a.name}.Name", "Spell Specialist");
+                a.LocalizedDescription = Helpers.CreateString($"{a.name}.Description", "Where most arcanists are broad in their study of magic, a spell specialist has her power focused in a few spells. Spell specialists are able to warp and twist the magic of their signature spells in ways other casters cannot.");
+            });
+            Helpers.SetField(spell_specialist, "m_ParentClass", arcanist_class);
+            library.AddAsset(spell_specialist, "");
+
+            createSignatureSpell();
+            createSignatureSpellEffects();
+
+            spell_specialist.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, arcane_exploits), Helpers.LevelEntry(7, arcane_exploits), Helpers.LevelEntry(13, arcane_exploits), Helpers.LevelEntry(19, arcane_exploits) };
+
+            spell_specialist.AddFeatures = new LevelEntry[]
+            {
+                 Helpers.LevelEntry(1, signature_spell_selection[0], dismiss, spell_bender),
+                 Helpers.LevelEntry(4, signature_spell_selection[1]),
+                 Helpers.LevelEntry(6, signature_spell_selection[2]),
+                 Helpers.LevelEntry(8, signature_spell_selection[3]),
+                 Helpers.LevelEntry(10, signature_spell_selection[4]),
+                 Helpers.LevelEntry(12, signature_spell_selection[5]),
+                 Helpers.LevelEntry(14, signature_spell_selection[6]),
+                 Helpers.LevelEntry(16, signature_spell_selection[7]),
+                 Helpers.LevelEntry(18, signature_spell_selection[8]),
+            };
+
+            arcanist_class.Progression.UIGroups = arcanist_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(signature_spell_selection));
+            arcanist_class.Progression.UIDeterminatorsGroup = arcanist_class.Progression.UIDeterminatorsGroup.AddToArray(dismiss, spell_bender);
+        }
+
+
+        static void createSignatureSpellEffects()
+        {
+            var ability = Helpers.CreateAbility("SignatureSpellDismissSpellAbility",
+                                    "Dismiss Signature Spell",
+                                    "A spell specialist can dismiss a signature spell as a swift action instead of a standard action by spending 1 point from her arcane reservoir.",
+                                    "",
+                                    Helpers.GetIcon("92681f181b507b34ea87018e8f7a528a"),
+                                    Kingmaker.UnitLogic.Abilities.Blueprints.AbilityType.Supernatural,
+                                    Kingmaker.UnitLogic.Commands.Base.UnitCommand.CommandType.Swift,
+                                    Kingmaker.UnitLogic.Abilities.Blueprints.AbilityRange.Medium,
+                                    "",
+                                    "",
+                                    Helpers.CreateRunActions(Helpers.Create<DismissSpells.ContextActionDismissSpell>(d => d.required_spell_features = signature_spell)),
+                                    Helpers.Create<DismissSpells.AbilityTargetCanDismiss>(d => d.required_spell_features = signature_spell),
+                                    arcane_reservoir_resource.CreateResourceLogic()
+                                    );
+            ability.setMiscAbilityParametersRangedDirectional();
+            dismiss = Common.AbilityToFeature(ability, false);
+
+
+            var buff = Helpers.CreateBuff("SignatureSpellSelectiveMetamagicBuff",
+                                          "Spell Bender",
+                                          "The spell specialist can apply selective metamagic feat to any of her signature spells without increasing spell level or casting time by spending 1 point from her arcane reservoir.",
+                                          "",
+                                          MetamagicFeats.selective_metamagic.Icon,
+                                          null,
+                                          Helpers.Create<NewMechanics.MetamagicMechanics.MetamagicIfHasParametrizedFeature>(m =>
+                                          {
+                                              m.amount = 1;
+                                              m.resource = arcane_reservoir_resource;
+                                              m.required_features = signature_spell;
+                                              m.Metamagic = (Metamagic)MetamagicFeats.MetamagicExtender.Selective;
+                                          })
+                                          );
+            var toggle = Common.buffToToggle(buff, CommandType.Free, true, arcane_reservoir_resource.CreateActivatableResourceLogic(ResourceSpendType.Never));
+
+            spell_bender = Common.ActivatableAbilityToFeature(toggle, false);
+        }
+
+
+        static void createSignatureSpell()
+        {         
+            for (int i = 1; i <= 9; i++)
+            {
+                signature_spell_selection[i - 1] = Helpers.CreateFeatureSelection($"SignatureSpell{i}FeatureSelection",
+                                                                    "Signature Spell " + Common.roman_id[i],
+                                                                    "At 1st level and each time a spell specialist gains a new spell level, she chooses a signature spell.\n"
+                                                                    + "The DC for signature spells increases by 1. The spell specialist gains a +2 bonus on concentration checks when casting signature spells; this bonus increases to +4 at 10th level.",
+                                                                    "",
+                                                                    null,
+                                                                    FeatureGroup.None
+                                                                    );
+
+                var feature = Helpers.CreateParametrizedFeature($"SignatureSpell{i}ParametrizedFeature",
+                                                                signature_spell_selection[i - 1].Name,
+                                                                signature_spell_selection[i - 1].Description,
+                                                                "",
+                                                                signature_spell_selection[i - 1].Icon,
+                                                                FeatureGroup.None,
+                                                                (FeatureParameterType)NewMechanics.ParametrizedFeatureSelection.FeatureParameterTypeExtender.AvailableSpell,
+                                                                Helpers.Create<LearnSpellParametrized>(p =>
+                                                                {
+                                                                    p.SpellcasterClass = arcanist_class;
+                                                                    p.SpecificSpellLevel = true;
+                                                                    p.SpellList = arcanist_class.Spellbook.SpellList;
+                                                                    p.SpellLevel = i;
+                                                                }
+                                                                ),
+                                                                Helpers.Create<SpellDuplicates.SignatureSpellBonusParametrized>(s =>
+                                                                {
+                                                                    s.concentration_bonus = Helpers.CreateContextValue(AbilityRankType.Default);
+                                                                    s.dc_bonus = 1;
+                                                                }
+                                                                ),
+                                                                Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, ContextRankProgression.Custom,
+                                                                                                 classes: getArcanistArray(),
+                                                                                                 customProgression: new (int, int)[] {(9, 2), (20, 4) }
+                                                                                                 )
+                                                           );
+
+                feature.SpellLevel = i;
+                feature.SpecificSpellLevel = true;
+                feature.SpellcasterClass = arcanist_class;
+                feature.SpellList = arcanist_class.Spellbook.SpellList;
+                feature.BlueprintParameterVariants = library.Get<BlueprintParametrizedFeature>("e69a85f633ae8ca4398abeb6fa11b1fe").BlueprintParameterVariants;
+
+                signature_spell_selection[i - 1].AllFeatures = new BlueprintFeature[] { feature };
+                signature_spell[i - 1] = feature;
+            }
         }
 
 
@@ -578,6 +711,7 @@ namespace CallOfTheWild
             new_arcana.AllFeatures = new_arcana.AllFeatures.AddToArray(new_arcana_blood_arcanist);
             new_arcana.Features = new_arcana.Features.AddToArray(new_arcana_blood_arcanist);
             new_arcana_blood_arcanist.SpellcasterClass = arcanist_class;
+            new_arcana_blood_arcanist.AddComponent(Common.createPrerequisiteArchetypeLevel(blood_arcanist_archetype, 1));
             bloodline_selection.AllFeatures = bloodlines.ToArray();
 
             blood_arcanist_archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, arcane_exploits), Helpers.LevelEntry(3, arcane_exploits), Helpers.LevelEntry(9, arcane_exploits), Helpers.LevelEntry(15, arcane_exploits), Helpers.LevelEntry(20, magical_supremacy) };
@@ -1644,6 +1778,46 @@ namespace CallOfTheWild
         }
 
 
+        static BlueprintFeature createUndead()
+        {
+            //necromancy
+            var necromancy_progression = Subschools.undead;
+            var resource = Helpers.CreateAbilityResource("UndeadSchoolUnderstandingBaseResource", "", "", "", null);
+            var base_ability = library.CopyAndAdd(Subschools.bolster, "SchoolUnderstandingUndeadSchoolBase1Ability", "");
+            base_ability.ReplaceComponent<AbilityResourceLogic>(a => a.RequiredResource = resource);
+            resource.SetIncreasedByStat(3, StatType.Charisma);
+            var resource2 = Helpers.CreateAbilityResource("UndeadSchoolUnderstandingBase2Resource", "", "", "", null);
+
+            var base_ability2 = library.CopyAndAdd(Subschools.command_undead, "SchoolUnderstandingUndeadSchoolBase2Ability", "");
+            base_ability2.ReplaceComponent<AbilityResourceLogic>(a => a.RequiredResource = resource2);
+            resource2.SetIncreasedByStat(3, StatType.Charisma);
+
+            var necromancy_buff = Helpers.CreateBuff("SchoolUnderstangingUndeadBuff",
+                                                    "School Understanding (" + necromancy_progression.Name + ")",
+                                                    school_understanding.Description + "\n" + necromancy_progression.Name + ": " + necromancy_progression.Description,
+                                                    "",
+                                                    necromancy_progression.Icon,
+                                                    null
+                                                    );
+            base_ability.AddComponent(Common.createAbilityCasterHasFacts(necromancy_buff));
+            base_ability2.AddComponent(Common.createAbilityCasterHasFacts(necromancy_buff));
+            var necromancy_feature = Helpers.CreateFeature("UndeadSchoolUnderstangingFeature",
+                                                          necromancy_buff.Name,
+                                                          necromancy_buff.Description,
+                                                          "",
+                                                          necromancy_buff.Icon,
+                                                          FeatureGroup.None,
+                                                          Helpers.CreateAddFacts(base_ability, base_ability2, createSchoolUnderstandingAbility(necromancy_buff)),
+                                                          Helpers.CreateAddAbilityResource(resource),
+                                                          Helpers.CreateAddAbilityResource(resource2),
+                                                          Helpers.PrerequisiteNoFeature(necromancy_progression),
+                                                          Helpers.Create<ReplaceAbilitiesStat>(r => { r.Ability = new BlueprintAbility[] { base_ability }; r.Stat = StatType.Charisma; }));
+            ChannelEnergyEngine.addToImprovedChannel(base_ability2, necromancy_feature);
+
+            return necromancy_feature;
+        }
+
+
         static BlueprintFeature createDivination()
         {
             //divination
@@ -1678,6 +1852,38 @@ namespace CallOfTheWild
                                                           Helpers.Create<ReplaceAbilitiesStat>(r => { r.Ability = new BlueprintAbility[] { base_ability }; r.Stat = StatType.Charisma; }));
 
             return divination_feature;
+        }
+
+
+
+        static BlueprintFeature createPhantasm()
+        {
+            //illusion
+            var illusion_progression = Subschools.phantasm;
+            var resource = Helpers.CreateAbilityResource("PhantasmSchoolUnderstandingBaseResource", "", "", "", null);
+            var base_ability = library.CopyAndAdd(Subschools.terror_ability_cast, "SchoolUnderstandingPhantasmSchoolBase1Ability", "");
+            base_ability.ReplaceComponent<AbilityResourceLogic>(a => a.RequiredResource = resource);
+            resource.SetIncreasedByStat(3, StatType.Charisma);
+
+            var illusion_buff = Helpers.CreateBuff("SchoolUnderstangingPhantasmBuff",
+                                                    "School Understanding (" + illusion_progression.Name + ")",
+                                                    school_understanding.Description + "\n" + illusion_progression.Name + ": " + illusion_progression.Description,
+                                                    "",
+                                                    illusion_progression.Icon,
+                                                    null);
+            base_ability.AddComponent(Common.createAbilityCasterHasFacts(illusion_buff));
+
+            var illusion_feature = Helpers.CreateFeature("PhantasmSchoolUnderstangingFeature",
+                                                          illusion_buff.Name,
+                                                          illusion_buff.Description,
+                                                          "",
+                                                          illusion_buff.Icon,
+                                                          FeatureGroup.None,
+                                                          Helpers.CreateAddFacts(base_ability, createSchoolUnderstandingAbility(illusion_buff)),
+                                                          Helpers.CreateAddAbilityResource(resource),
+                                                          Helpers.PrerequisiteNoFeature(illusion_progression),
+                                                          Helpers.Create<ReplaceAbilitiesStat>(r => { r.Ability = new BlueprintAbility[] { base_ability }; r.Stat = StatType.Charisma; }));
+            return illusion_feature;
         }
 
 
@@ -1728,9 +1934,7 @@ namespace CallOfTheWild
                                                       "",
                                                       null,
                                                       FeatureGroup.None);
-            school_understanding.AddComponents(Helpers.PrerequisiteNoFeature(school_understanding),
-                                               Common.prerequisiteNoArchetype(school_savant_archetype)
-                                               );
+            school_understanding.AddComponents(Helpers.PrerequisiteNoFeature(school_understanding));
 
             school_understanding.AllFeatures = new BlueprintFeature[]
             {
@@ -1745,7 +1949,9 @@ namespace CallOfTheWild
                 createAdmixture(),
                 createTeleportation(),
                 createEnhancement(),
-                createProphecy()
+                createProphecy(),
+                createPhantasm(),
+                createUndead()
             };
             school_understanding.AddComponent(Common.prerequisiteNoArchetype(school_savant_archetype));
             arcane_exploits.AllFeatures = arcane_exploits.AllFeatures.AddToArray(school_understanding);
@@ -2011,12 +2217,16 @@ namespace CallOfTheWild
             var force_missile = library.Get<BlueprintAbility>("3d55cc710cc497843bb51788057cd93f");
             var magic_missile = library.Get<BlueprintAbility>("4ac47ddb9fa1eaf43a1b6809980cfbd2");
 
-            var damage = Helpers.CreateActionDealDamage(DamageEnergyType.Magic, Helpers.CreateContextDiceValue(BalanceFixes.getDamageDie(DiceType.D4), 1, Helpers.CreateContextValue(AbilityRankType.Default)));
+            var damage = Helpers.CreateActionDealDamage(DamageEnergyType.Magic, Helpers.CreateContextDiceValue(BalanceFixes.getDamageDie(DiceType.D4),
+                                                        Main.settings.balance_fixes ? Helpers.CreateContextValue(AbilityRankType.Default) : 1,  
+                                                        Main.settings.balance_fixes ? 0 : Helpers.CreateContextValue(AbilityRankType.Default)));
             damage.DamageType = Common.createForceDamageDescription();
 
             var ability = Helpers.CreateAbility("ForceStrikeExploitAbility",
                                                 "Force Strike",
-                                                $"The arcanist can unleash a blast of force by expending 1 point from her arcane reservoir. This attack automatically strikes one target within close range (as magic missile) and deals 1d{BalanceFixes.getDamageDieString(DiceType.D4)} points of force damage, plus 1 point of damage per arcanist level. Spells and effects that negate magic missile also negate this effect.",
+                                                Main.settings.balance_fixes ?
+                                                $"The arcanist can unleash a blast of force by expending 1 point from her arcane reservoir. This attack automatically strikes one target within close range (as magic missile) and deals 1d{BalanceFixes.getDamageDieString(DiceType.D4)} points of force damage, plus 1d{BalanceFixes.getDamageDieString(DiceType.D4)} points of damage per two arcanist levels beyond first. Spells and effects that negate magic missile also negate this effect."
+                                                : "The arcanist can unleash a blast of force by expending 1 point from her arcane reservoir. This attack automatically strikes one target within close range (as magic missile) and deals 1d4 points of force damage, plus 1 point of damage per arcanist level. Spells and effects that negate magic missile also negate this effect.",
                                                 "",
                                                 force_missile.Icon,
                                                 AbilityType.Supernatural,
@@ -2026,7 +2236,7 @@ namespace CallOfTheWild
                                                 "",
                                                 force_missile.GetComponent<AbilityDeliverProjectile>(),
                                                 Helpers.CreateRunActions(damage),
-                                                Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel, classes: getExploitsUserArray()),
+                                                Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel, classes: getExploitsUserArray(), progression: Main.settings.balance_fixes ? ContextRankProgression.OnePlusDiv2 : ContextRankProgression.AsIs),
                                                 Helpers.CreateSpellDescriptor(SpellDescriptor.Force),
                                                 Helpers.CreateResourceLogic(arcane_reservoir_resource)
                                                 );
@@ -2064,7 +2274,7 @@ namespace CallOfTheWild
             var icon = LoadIcons.Image2Sprite.Create(@"AbilityIcons/HolyWaterJet.png");
             var ability = Helpers.CreateAbility("HolyWaterJetExploitAbility",
                                                         "Holy Water Jet",
-                                                        $"The arcanist can unleash a jet of holy water by expending 1 point from her arcane reservoir. This creates a 30-foot line of water that deals damage equal to 1d{BalanceFixes.getDamageDieString(DiceType.D8)} points of damage plus the arcanist’s Charisma modifier, plus an additional 1d8 points of damage for every 2 levels beyond 1st (to a maximum of 10d8 at 19th level) to each target in the line that would normally take damage from holy water. Creatures in the area of effect can attempt a Reflex saving throw to halve the damage.",
+                                                        $"The arcanist can unleash a jet of holy water by expending 1 point from her arcane reservoir. This creates a 30-foot line of water that deals damage equal to 1d{BalanceFixes.getDamageDieString(DiceType.D8)} points of damage plus the arcanist’s Charisma modifier, plus an additional 1d{BalanceFixes.getDamageDieString(DiceType.D8)} points of damage for every 2 levels beyond 1st (to a maximum of 10d{BalanceFixes.getDamageDieString(DiceType.D8)} at 19th level) to each target in the line that would normally take damage from holy water. Creatures in the area of effect can attempt a Reflex saving throw to halve the damage.",
                                                         "",
                                                         icon,
                                                         AbilityType.Supernatural,
@@ -2092,7 +2302,7 @@ namespace CallOfTheWild
             var icon = library.Get<BlueprintAbility>("ebade19998e1f8542a1b55bd4da766b3").Icon;
             var flame_arc_ability = Helpers.CreateAbility("FlameArcExploitAbility",
                                                         "Flame Arc",
-                                                        $"The arcanist can unleash an arc of flame by expending 1 point from her arcane reservoir. This creates a 30-foot line of flame that deals 1d{BalanceFixes.getDamageDie(DiceType.D6)} points of fire damage + the arcanist’s Charisma modifier, plus an additional 1d{BalanceFixes.getDamageDieString(DiceType.D6)}  points of fire damage for every 2 levels beyond 1st (to a maximum of 10d{BalanceFixes.getDamageDieString(DiceType.D6)}  at 19th level) to each target in the line. Creatures in the area of effect may attempt a Reflex saving throw to halve the damage.",
+                                                        $"The arcanist can unleash an arc of flame by expending 1 point from her arcane reservoir. This creates a 30-foot line of flame that deals 1d{BalanceFixes.getDamageDieString(DiceType.D6)} points of fire damage + the arcanist’s Charisma modifier, plus an additional 1d{BalanceFixes.getDamageDieString(DiceType.D6)}  points of fire damage for every 2 levels beyond 1st (to a maximum of 10d{BalanceFixes.getDamageDieString(DiceType.D6)}  at 19th level) to each target in the line. Creatures in the area of effect may attempt a Reflex saving throw to halve the damage.",
                                                         "",
                                                         icon,
                                                         AbilityType.Supernatural,

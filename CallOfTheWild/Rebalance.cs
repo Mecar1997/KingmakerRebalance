@@ -47,6 +47,7 @@ using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UI.Common;
 using Kingmaker.Blueprints.Root;
 using Kingmaker.UnitLogic.Class.Kineticist;
+using Kingmaker.Controllers.Brain.Blueprints;
 
 namespace CallOfTheWild
 {
@@ -206,7 +207,7 @@ namespace CallOfTheWild
             //fiery body
             library.Get<BlueprintAbility>("08ccad78cac525040919d51963f9ac39").GetComponent<SpellDescriptorComponent>().Descriptor = SpellDescriptor.Fire;
             //fire belly
-            Common.addSpellDescriptor(library.Get<BlueprintAbility>("5e5b663f988ece84b9346f6d7d541e66"), SpellDescriptor.Fire);
+            Common.addSpellDescriptor(library.Get<BlueprintAbility>("b065231094a21d14dbf1c3832f776871"), SpellDescriptor.Fire);
             library.Get<BlueprintAbility>("08ccad78cac525040919d51963f9ac39").GetComponent<SpellDescriptorComponent>().Descriptor = SpellDescriptor.Fire;
             //force descriptors on battering blast and magic missile
             library.Get<BlueprintAbility>("4ac47ddb9fa1eaf43a1b6809980cfbd2").AddComponent(Helpers.CreateSpellDescriptor(SpellDescriptor.Force));
@@ -556,6 +557,51 @@ namespace CallOfTheWild
             }
         }
 
+        static internal void fixFlameWardenSpells()
+        {
+            var flamewarden = library.Get<BlueprintArchetype>("300917c3479d27d47b4b4b52b1762e8d");
+
+            var spellbook = library.CopyAndAdd<BlueprintSpellbook>("762858a4a28eaaf43aa00f50441d7027", "FlameWardenSpellbook", "");
+            spellbook.Name = Helpers.CreateString("Flamewarden.Spellbook", flamewarden.Name);
+            var druid_spelllist = library.Get<BlueprintSpellList>("bad8638d40639d04fa2f80a1cac67d6b");
+            var ranger_spell_list = flamewarden.GetParentClass().Spellbook.SpellList;
+            spellbook.SpellList = Common.combineSpellLists("FlameWardenSpellList",
+                                                            (spell, spelllist, lvl) =>
+                                                            {
+                                                                return lvl != 0 &&
+                                                                       (spelllist != druid_spelllist
+                                                                       || (!ranger_spell_list.Contains(spell) && lvl <= 4 && spell.SpellDescriptor.Intersects(SpellDescriptor.Fire))
+                                                                       );
+                                                            },
+                                                           flamewarden.GetParentClass().Spellbook.SpellList, druid_spelllist
+                                                           );
+
+            flamewarden.ReplaceSpellbook = spellbook;
+
+            var flame_warden_spellcasting1 = library.Get<BlueprintFeature>("2cb57c0d74d143f4da1ef6704012b0f4");
+            var flame_warden_spellcasting2 = library.Get<BlueprintFeature>("275d72a20f615b54eb89460cd3aa8e1b");
+            var flame_warden_spellcasting3 = library.Get<BlueprintFeature>("0dc70999341cdd644be0b972dd83900b");
+            var flame_warden_spellcasting4 = library.Get<BlueprintFeature>("891441bcd187d4d43abc46d3202e07a0");
+
+            flamewarden.AddFeatures = Common.removeEntries(flamewarden.AddFeatures, f => f == flame_warden_spellcasting2 || f == flame_warden_spellcasting3 || f == flame_warden_spellcasting4 );
+            flame_warden_spellcasting1.SetDescription("A flamewarden can prepare spells from the druid list that have the fire descriptor.");
+            flame_warden_spellcasting1.ComponentsArray = new BlueprintComponent[]
+            {
+                Helpers.CreateAddKnownSpell(library.Get<BlueprintAbility>("d8f88028204bc2041be9d9d51f58e6a5"), flamewarden.GetParentClass(), 1),
+                Helpers.CreateAddKnownSpell(library.Get<BlueprintAbility>("7b30211b83d55194db872b6c9c0d9cc1"), flamewarden.GetParentClass(), 3),
+                Helpers.CreateAddKnownSpell(library.Get<BlueprintAbility>("b3a203742191449458d2544b3f442194"), flamewarden.GetParentClass(), 4)
+            };
+
+            var mt_ranger = library.Get<BlueprintProgression>("a823e7aa48bbec24f87f4a92a3ac0aa2");
+            mt_ranger.AddComponent(Common.prerequisiteNoArchetype(flamewarden));
+
+            Common.addMTDivineSpellbookProgression(flamewarden.GetParentClass(), spellbook, "MysticTheurgeFlamewardenProgression",
+                                       Common.createPrerequisiteArchetypeLevel(flamewarden, 1),
+                                       Common.createPrerequisiteClassSpellLevel(flamewarden.GetParentClass(), 2)
+                                       );
+        }
+
+
         internal static void fixUniversalistMetamagicMastery()
         {
             BlueprintFeature[] metamagics = library.GetAllBlueprints().OfType<BlueprintFeature>().Where(b => b.Groups.Contains(FeatureGroup.WizardFeat) && (b.GetComponent<AddMetamagicFeat>() != null) && b.AssetGuid != "2f5d1e705c7967546b72ad8218ccf99c").ToArray();
@@ -664,10 +710,10 @@ namespace CallOfTheWild
             tristian_level.Selections[2].Features[0] = ResourcesLibrary.TryGetBlueprint<BlueprintProgression>("c85c8791ee13d4c4ea10d93c97a19afc");//sun as primary
             tristian_level.Selections[3].Features[0] = Subdomains.restoration_domain_secondary;
             tristian_level.Selections[4].Features[1] = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>("797f25d709f559546b29e7bcb181cc74");//improved initiative
-            tristian_level.Selections[4].Features[2] = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>("16fa59cc9a72a6043b566b49184f53fe");//spell focus
+            tristian_level.Selections[4].Features[0] = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>("16fa59cc9a72a6043b566b49184f53fe");//spell focus
             tristian_level.Selections[5].ParamSpellSchool = SpellSchool.Evocation;
             tristian_level.Selections[6].ParamSpellSchool = SpellSchool.Evocation;
-            tristian_level.Skills = new StatType[] { StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillPersuasion, StatType.SkillLoreNature };
+            tristian_level.Skills = new StatType[] { StatType.SkillLoreReligion, StatType.SkillPerception, StatType.SkillLoreNature, StatType.SkillPersuasion };
             tristian_level.Levels = 1;
             var harrim_companion = ResourcesLibrary.TryGetBlueprint<BlueprintUnit>("aab03d0ab5262da498b32daa6a99b507");
             harrim_companion.Strength = 17;
@@ -805,9 +851,29 @@ namespace CallOfTheWild
             var reg_portrait = library.Get<BlueprintPortrait>("6e7302bb773adf04299dbe8832562d50").BackupPortrait = null;
             var regognar_companion = ResourcesLibrary.TryGetBlueprint<BlueprintUnit>("b090918d7e9010a45b96465de7a104c3");
             regognar_companion.Dexterity = 12;
+            regognar_companion.Charisma = 14;
+            regognar_companion.Constitution = 14;
+            regognar_companion.Intelligence = 12;
             var regognar_levels = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>("12ee53c9e546719408db257f489ec366").GetComponent<AddClassLevels>();
+            regognar_levels.SelectSpells[1] = NewSpells.frost_bite;
             regognar_levels.Levels = 1;
+            regognar_levels.Archetypes[0] = Bloodrager.eldritch_scion_bloodrager;
+            regognar_levels.Selections[1].Selection = Bloodrager.eldritch_scion_bloodrager_bloodlines;
+            regognar_levels.Selections[1].Features[0] = library.Get<BlueprintProgression>("2f5c69372bb5494da0b67acc66c0b54a"); //draconic blue
             regognar_levels.Selections = regognar_levels.Selections.AddToArray(new SelectionEntry()
+                        {
+                            Selection = library.Get<BlueprintFeatureSelection>("f121a082924144cb92023d202902763b"),
+                            Features = new BlueprintFeature[] { BloodlinesFix.bloodline_familiar }
+                        },
+                        new SelectionEntry()
+                        {
+                            Selection = BloodlinesFix.bloodline_familiar,
+                            Features = new BlueprintFeature[] { library.Get<BlueprintFeature>("61aeb92c176193e48b0c9c50294ab290") } //lizard
+                        }
+                        );
+
+
+            /*regognar_levels.Selections = regognar_levels.Selections.AddToArray(new SelectionEntry()
             {
                 Selection = library.Get<BlueprintFeatureSelection>("5294b338c6084396abbe63faab09049c"),
                 Features = new BlueprintFeature[] { BloodlinesFix.bloodline_familiar }
@@ -817,7 +883,7 @@ namespace CallOfTheWild
                                                                                     Selection = BloodlinesFix.bloodline_familiar,
                                                                                     Features = new BlueprintFeature[] { library.Get<BlueprintFeature>("61aeb92c176193e48b0c9c50294ab290") } //lizard
                                                                                 }
-                                                                              );
+                                                                              );*/
 
             //change ekun
             var ekun_companion = ResourcesLibrary.TryGetBlueprint<BlueprintUnit>("d5bc1d94cd3e5be4bbc03f3366f67afc");
@@ -840,6 +906,10 @@ namespace CallOfTheWild
             jubilost_companion.Charisma = 8;
             var jubilost_feature = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>("c9618e3c61e65114b994f3fabcae1d97");
             var jubilost_acl = jubilost_feature.GetComponent<AddClassLevels>();
+            if (Main.settings.balance_fixes)
+            {
+                jubilost_acl.Selections[0].Features[0] = library.Get<BlueprintFeature>("8f3d1e6b4be006f4d896081f2f889665"); //precise shot
+            }
             jubilost_acl.Levels = 1;
             jubilost_acl.Archetypes = jubilost_acl.Archetypes.AddToArray(Archetypes.Preservationist.archetype);
             jubilost_acl.Skills = new StatType[] { StatType.SkillKnowledgeWorld, StatType.SkillPersuasion, StatType.SkillThievery, StatType.SkillUseMagicDevice, StatType.SkillKnowledgeArcana, StatType.SkillPerception };
@@ -909,7 +979,7 @@ namespace CallOfTheWild
             var kalikke_acl = kalikke_feature.GetComponent<AddClassLevels>();
             kalikke_acl.Levels = 1;
             kalikke_acl.Selections[0].Features[0] = library.Get<BlueprintFeature>("90e54424d682d104ab36436bd527af09"); //weapon finesse
-            //kalikke_acl.Selections[4].Features = kalikke_acl.Selections[4].Features.Reverse().ToArray();
+            kalikke_acl.Selections[4].Features = kalikke_acl.Selections[4].Features.Reverse().ToArray(); //give cold blast instead of water at level 1
             kalikke_acl.Skills = new StatType[] { StatType.SkillPerception, StatType.SkillMobility, StatType.SkillStealth, StatType.SkillLoreNature };
             var kalikke_companion = library.Get<BlueprintUnit>("c807d18a89f96c74f8bb48b31b616323");
             kalikke_companion.Strength = 9;
@@ -918,6 +988,10 @@ namespace CallOfTheWild
             kalikke_companion.Constitution = 16;
             kalikke_companion.Charisma = 8;
             kalikke_companion.Wisdom = 12;
+            //fix ai to use cold blast
+            var water_blast_action = library.Get<BlueprintAiCastSpell>("2c24f6bb1a757864d8aaa4b41466d3dc");
+            water_blast_action.Ability = library.Get<BlueprintAbility>("7980e876b0749fc47ac49b9552e259c1");
+            water_blast_action.Variant = library.Get<BlueprintAbility>("f6d32ecd20ebacb4e964e2ece1c70826");
 
             var elemental_focus = library.Get<BlueprintFeatureSelection>("bb24cc01319528849b09a3ae8eec0b31");
             var kanerah_feature = ResourcesLibrary.TryGetBlueprint<BlueprintFeature>("ccb52e235941e0442be0cb0ee5570f07");
@@ -935,6 +1009,22 @@ namespace CallOfTheWild
             kanerah_companion.Constitution = 14;
             kanerah_companion.Charisma = 8;
             kanerah_companion.Wisdom = 10;
+
+            //fix tratucio
+            var tartucio_feature = library.Get<BlueprintFeature>("a94fdc7ac4e70954aa05a5ff34b8e6bf");
+            var tartucio_levels = tartucio_feature.GetComponent<AddClassLevels>();
+            tartucio_levels.Selections = tartucio_levels.Selections.AddToArray(new SelectionEntry()
+            {
+                Selection = library.Get<BlueprintFeatureSelection>("7c150d6a5f5b4ffd8eb710c79888d273"),
+                Features = new BlueprintFeature[] { BloodlinesFix.bloodline_familiar }
+            },
+                                                                    new SelectionEntry()
+                                                                    {
+                                                                        Selection = BloodlinesFix.bloodline_familiar,
+                                                                        Features = new BlueprintFeature[] { library.Get<BlueprintFeature>("61aeb92c176193e48b0c9c50294ab290") } //lizard
+                                                                                }
+                                                                  );
+            tartucio_levels.SelectSpells[1] = library.Get<BlueprintAbility>("bb7ecad2d3d2c8247a38f44855c99061");
         }
 
 
@@ -1241,6 +1331,46 @@ namespace CallOfTheWild
         }
 
 
+        static internal void condenseMonkUnarmedDamage()
+        {
+            //collapse unarmed strike damage into one feature
+            DiceFormula[] diceFormulas = new DiceFormula[] {new DiceFormula(1, DiceType.D6),
+                                                            new DiceFormula(1, DiceType.D8),
+                                                            new DiceFormula(1, DiceType.D10),
+                                                            new DiceFormula(2, DiceType.D6),
+                                                            new DiceFormula(2, DiceType.D8),
+                                                            new DiceFormula(2, DiceType.D10)};
+
+            var fist1d6 = library.Get<BlueprintFeature>("c3fbeb2ffebaaa64aa38ce7a0bb18fb0");          
+            var fist1d8 = library.Get<BlueprintFeature>("8267a0695a4df3f4ca508499e6164b98");
+            var fist1d10 = library.Get<BlueprintFeature>("f790a36b5d6f85a45a41244f50b947ca");
+            var fist2d6 = library.Get<BlueprintFeature>("b3889f445dbe42948b8bb1ba02e6d949");
+            var fist2d8 = library.Get<BlueprintFeature>("078636a2ce835e44394bb49a930da230");
+            var fist2d10 = library.Get<BlueprintFeature>("df38e56fa8b3f0f469d55f9aa26b3f5c");
+
+            var fists = new BlueprintFeature[] { fist1d8, fist1d10, fist2d6, fist2d6, fist2d8, fist2d10 };
+
+            fist1d6.ComponentsArray = new BlueprintComponent[]
+            {
+                    Helpers.Create<NewMechanics.ContextWeaponDamageDiceReplacementWeaponCategory>(c =>
+                    {
+                        c.dice_formulas = diceFormulas;
+                        c.value = Helpers.CreateContextValue(AbilityRankType.Default);
+                        c.categories = new WeaponCategory[] {WeaponCategory.UnarmedStrike};
+                    }),
+                    Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel,
+                                                    type: AbilityRankType.Default,
+                                                    progression: ContextRankProgression.DivStep,
+                                                    stepLevel: 4,
+                                                    classes: new BlueprintCharacterClass[]{library.Get<BlueprintCharacterClass>("e8f21e5b58e0569468e420ebea456124") }
+                                                    )
+            };
+
+            var monk_progresssion = library.Get<BlueprintProgression>("8a91753b978e3b34b9425419179aafd6");
+            monk_progresssion.LevelEntries = Common.removeEntries(monk_progresssion.LevelEntries, f => fists.Contains(f), keep_empty_entries: true);
+        }
+
+
         static internal void fixTeamworkFeats()
         {
             int fix_range = 2;  //2 meters ~ 7 feet
@@ -1372,7 +1502,7 @@ namespace CallOfTheWild
             foreach (var h in heals)
             {
                 var new_actions = Common.changeAction<ContextActionHealTarget>(h.GetComponent<AbilityEffectRunAction>().Actions.Actions,
-                                                               c => c.Value = Helpers.CreateContextDiceValue(BalanceFixes.getDamageDie(DiceType.D6), Helpers.CreateContextValue(AbilityRankType.Default), 0));
+                                                               c => c.Value = Helpers.CreateContextDiceValue(DiceType.D6, Helpers.CreateContextValue(AbilityRankType.Default), 0));
 
                 h.ReplaceComponent<AbilityEffectRunAction>(c => c.Actions = Helpers.CreateActionList(new_actions));
             }
@@ -1567,7 +1697,7 @@ namespace CallOfTheWild
 
             var cleric = library.Get<BlueprintCharacterClass>("67819271767a9dd4fbfd4ae700befea0");
             var paladin = library.Get<BlueprintCharacterClass>("bfa11238e7ae3544bbeb4d0b92e897ec");
-            var sorceror = library.Get<BlueprintCharacterClass>("b3a505fb61437dc4097f43c3f8f9a4cf");
+            var sorcerer = library.Get<BlueprintCharacterClass>("b3a505fb61437dc4097f43c3f8f9a4cf");
 
             string[] cleric_channel_ids = new string[] {"f5fc9a1a2a3c1a946a31b320d1dd31b2",
                                                       "279447a6bf2d3544d93a0a39c3b8e91d",
@@ -1598,7 +1728,7 @@ namespace CallOfTheWild
             foreach (var id in empyreal_channel_ids)
             {
                 var channel = library.Get<BlueprintAbility>(id);
-                channel.AddComponent(Common.createContextCalculateAbilityParamsBasedOnClasses(new BlueprintCharacterClass[] { sorceror }, StatType.Charisma));
+                channel.AddComponent(Common.createContextCalculateAbilityParamsBasedOnClasses(new BlueprintCharacterClass[] { sorcerer }, StatType.Charisma));
             }
         }
 
@@ -1979,7 +2109,7 @@ namespace CallOfTheWild
             }
             );
             grease_spell.RemoveComponents<AbilityAoERadius>();
-            grease_spell.AddComponent(Helpers.CreateAbilityTargetsAround(10.Feet(), TargetType.Any));
+            grease_spell.AddComponent(Helpers.CreateAbilityTargetsAround(10.Feet(), Kingmaker.UnitLogic.Abilities.Components.TargetType.Any));
             grease_area.AddComponents(area_effect);
         }
 
@@ -2040,6 +2170,10 @@ namespace CallOfTheWild
             /*Common.monstrous_humanoid.AddComponents(Helpers.Create<BuffDescriptorImmunity>(b => { b.Descriptor = language_dependent; b.IgnoreFeature = serpentine_arcana; }),
                                                 Helpers.Create<SpellImmunityToSpellDescriptor>(b => { b.Descriptor = language_dependent; b.CasterIgnoreImmunityFact = serpentine_arcana; })
                                                 );*/
+
+            //fix well-versed to include bonus against language dependent effects
+            var well_versed = library.Get<BlueprintFeature>("8f4060852a4c8604290037365155662f");
+            well_versed.ReplaceComponent<SavingThrowBonusAgainstDescriptor>(s => s.SpellDescriptor = s.SpellDescriptor.Value | language_dependent);
         }
 
         static internal void fixUndeadImmunity()
@@ -2135,7 +2269,7 @@ namespace CallOfTheWild
         }
 
 
-        internal static void fixSylvanSorcerorAnimalCompanion()
+        internal static void fixSylvanSorcererAnimalCompanion()
         {
             //make it to be equal to level - 4 (min 1)
             var progression = library.Get<BlueprintProgression>("09c91f959fb737f4289d121e595c657c");
@@ -2157,6 +2291,27 @@ namespace CallOfTheWild
                 {
                     dr.AffectAnyPhysicalDamage = true;
                 }
+            }
+        }
+
+
+        static internal void fixElementalArcana()
+        {
+            var buffs = new BlueprintUnitFact[]
+            {
+                library.Get<BlueprintFeature>("f23c9a3a3483e2947bbcf09590d01e90"), //rod of fire vengeance
+                library.Get<BlueprintBuff>("3f5763ac8b4e080469f9a41adf3a16c3"), //air
+                library.Get<BlueprintBuff>("3d700f97e681b014e894d9ff9c972a83"), //earth
+                library.Get<BlueprintBuff>("b3e3882ab6829e34983f31e989c00dfc"), //fire
+                library.Get<BlueprintBuff>("912fbab5b3579e9409fcb0f750bb6f2b"), //air
+                library.Get<BlueprintBuff>("ea64c9c2358aee1429a6c325c11eca55"), //rod of fire vengeance
+            };
+
+
+            foreach (var b in buffs)
+            {
+                var c = b.GetComponent<ChangeSpellElementalDamage>();
+                b.ReplaceComponent(c, Helpers.Create<NewMechanics.MetamagicMechanics.ChangeSpellElementalDamage>(s => s.Element = c.Element));
             }
         }
 
@@ -2362,7 +2517,7 @@ namespace CallOfTheWild
                                        + "At 12th level, a tactical leader can use the tactician ability as a swift action. At 18th level, whenever the tactical leader uses this ability, he grants any two teamwork feats that he knows. He can select from any of his teamwork feats, not just his bonus feats.");
 
             ability.ReplaceComponent<AbilityEffectRunAction>(a => a.Actions = Helpers.CreateActionList(Common.createContextActionRemoveBuffFromCaster(buff), a.Actions.Actions[0]));
-
+            ability.ReplaceComponent<ContextRankConfig>(c => Helpers.SetField(c, "m_StartLevel", -4));
 
             var extra_tactician = Helpers.CreateFeature("TacticalLeaderExtraTactician",
                                                         "",

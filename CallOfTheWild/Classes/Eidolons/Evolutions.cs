@@ -95,6 +95,8 @@ namespace CallOfTheWild
         static public BlueprintFeature poison_strength;
         static public BlueprintFeature poison_constitution;
         static public BlueprintFeature[] shared_slots;
+        static public BlueprintFeature extra_attack_serpentine;
+        static public BlueprintFeature extra_off_hand_attack_serpentine;
         static public BlueprintFeature extra_attack;
         static public BlueprintFeature extra_attack2;
         static public BlueprintFeature extra_off_hand_attack;
@@ -644,7 +646,7 @@ namespace CallOfTheWild
                                                          evolution_group: "Skilled"));
             }
 
-            evolution_entries.Add(new EvolutionEntry(wing_buffet, 1, 0, new BlueprintFeature[] {flight}, new BlueprintFeature[0],
+            evolution_entries.Add(new EvolutionEntry(wing_buffet, 1, 9, new BlueprintFeature[] {flight}, new BlueprintFeature[0],
                                          eidolons.AddToArray(animals).RemoveFromArray(Eidolon.infernal_eidolon)));
 
             for (int i = 0; i < ability_increase.Length; i++)
@@ -678,7 +680,7 @@ namespace CallOfTheWild
             }
 
             evolution_entries.Add(new EvolutionEntry(flight, 2, 5, new BlueprintFeature[0], new BlueprintFeature[0], new BlueprintFeature[0]));
-            evolution_entries.Add(new EvolutionEntry(gore, 2, 0, new BlueprintFeature[0], new BlueprintFeature[] {extra_attack2, extra_off_hand_attack2 },
+            evolution_entries.Add(new EvolutionEntry(gore, 2, 14, new BlueprintFeature[0], new BlueprintFeature[] {extra_attack2, extra_off_hand_attack2 },
                                                      devil_elemental.AddToArray(new BlueprintFeature[] {bear, dog, monitor, wolf, wolf_ekun, leopard, smilodon, centipede, Eidolon.agathion_eidolon })));
 
             foreach (var e in immunity)
@@ -780,9 +782,11 @@ namespace CallOfTheWild
                                          ));
 
             evolution_entries.Add(new EvolutionEntry(extra_attack, 2, 0, new BlueprintFeature[0], new BlueprintFeature[0], biped_eidolons));
-            evolution_entries.Add(new EvolutionEntry(extra_attack2, 2, 0, new BlueprintFeature[] { extra_attack }, new BlueprintFeature[] {gore}, biped_eidolons.RemoveFromArray(Eidolon.infernal_eidolon)));
+            evolution_entries.Add(new EvolutionEntry(extra_attack_serpentine, 2, 14, new BlueprintFeature[0], new BlueprintFeature[0], serpentine_eidolons));
+            evolution_entries.Add(new EvolutionEntry(extra_attack2, 2, 14, new BlueprintFeature[] { extra_attack }, new BlueprintFeature[] {gore}, biped_eidolons.RemoveFromArray(Eidolon.infernal_eidolon)));
             evolution_entries.Add(new EvolutionEntry(extra_off_hand_attack, 1, 0, new BlueprintFeature[] {extra_attack }, new BlueprintFeature[0], biped_eidolons.RemoveFromArray(Eidolon.infernal_eidolon)));
-            evolution_entries.Add(new EvolutionEntry(extra_off_hand_attack2, 1, 0, new BlueprintFeature[] { extra_attack2, extra_off_hand_attack }, new BlueprintFeature[] { gore, bite }, biped_eidolons.RemoveFromArray(Eidolon.infernal_eidolon)));
+            evolution_entries.Add(new EvolutionEntry(extra_off_hand_attack_serpentine, 1, 14, new BlueprintFeature[0], new BlueprintFeature[0], serpentine_eidolons));
+            evolution_entries.Add(new EvolutionEntry(extra_off_hand_attack2, 1, 14, new BlueprintFeature[] { extra_attack2, extra_off_hand_attack }, new BlueprintFeature[] { gore, bite }, biped_eidolons.RemoveFromArray(Eidolon.infernal_eidolon)));
         }
 
         static void createEvolutions()
@@ -895,6 +899,7 @@ namespace CallOfTheWild
 
             extra_attack2 = library.CopyAndAdd(extra_attack, "ExtraAttackEvolutionIIFeature", "");
             extra_attack2.SetName("Extra Attack II");
+            extra_attack_serpentine = library.CopyAndAdd(extra_attack, "ExtraAttackEvolutionSerpentineFeature","");
 
             extra_off_hand_attack = Helpers.CreateFeature("ExtraSecondaryAttackEvolutionFeature",
                                                          "Extra Off-Hand Attack",
@@ -907,6 +912,7 @@ namespace CallOfTheWild
 
             extra_off_hand_attack2 = library.CopyAndAdd(extra_off_hand_attack, "ExtraSecondaryAttackEvolutionIIFeature", "");
             extra_off_hand_attack2.SetName("Extra Off-Hand Attack II");
+            extra_off_hand_attack_serpentine = library.CopyAndAdd(extra_off_hand_attack, "ExtraOffHandAttackEvolutionSerpentineFeature", "");
         }
 
 
@@ -971,19 +977,13 @@ namespace CallOfTheWild
 
             constrict = Helpers.CreateFeature("ConstrictEvolutionFeature",
                                          "Constrict",
-                                         $"The eidolon gains powerful muscles that allow it to crush those it grapples. It can make one additional {(Main.settings.secondary_rake_attacks ? "secondary" : "primary")} attack with its tail when making a full attack.",
+                                         $"The eidolon gains powerful muscles that allow it to crush those it grapples. It can make one additional secondary attack with its tail when making a full attack.",
                                          "",
                                          icon,
                                          FeatureGroup.None);
 
-            if (Main.settings.secondary_rake_attacks)
-            {
-                constrict.AddComponent(Common.createAddSecondaryAttacks(tail1d6));                            
-            }
-            else
-            {
-                constrict.AddComponent(Helpers.Create<AddAdditionalLimb>(a => a.Weapon = tail1d6));
-            }
+
+            constrict.AddComponent(Common.createAddSecondaryAttacks(tail1d6));                            
         }
 
 
@@ -1540,7 +1540,7 @@ namespace CallOfTheWild
             dragon_info.Add(("Gold", "30-foot Cone", "Fire"));
             dragon_info.Add(("Green", "30-foot Cone", "Acid"));
             dragon_info.Add(("Silver", "30-foot Cone", "Cold"));
-            var description = "The eidolon learns to exhale a cone or line of magical energy, gaining a breath weapon. Select acid, cold, electricity, or fire. The eidolon can breathe a 30-foot cone (or 60-foot line) that deals 1d6 points of damage of the selected type per Hit Dice it possesses. Those caught in the breath weapon can attempt a Reflex save for half damage. The DC is equal to 10 + 1/2 the eidolon’s Hit Dice + the eidolon’s Constitution modifier. The eidolon can use this ability once per day. The eidolon can gain additional uses of this ability per day by spending 1 evolution point per additional use (to a maximum of three total uses per day).";
+            var description = $"The eidolon learns to exhale a cone or line of magical energy, gaining a breath weapon. Select acid, cold, electricity, or fire. The eidolon can breathe a 30-foot cone (or 60-foot line) that deals 1d{BalanceFixes.getDamageDieString(DiceType.D6)} points of damage of the selected type per Hit Dice it possesses. Those caught in the breath weapon can attempt a Reflex save for half damage. The DC is equal to 10 + 1/2 the eidolon’s Hit Dice + the eidolon’s Constitution modifier. The eidolon can use this ability once per day. The eidolon can gain additional uses of this ability per day by spending 1 evolution point per additional use (to a maximum of three total uses per day).";
 
             breath_weapon = new BlueprintFeature[dragon_info.Count][];
 

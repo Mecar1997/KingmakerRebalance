@@ -4,7 +4,6 @@ using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.EntitySystem.Stats;
-using Kingmaker.Enums;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
@@ -21,26 +20,12 @@ namespace CallOfTheWild
     {
         static LibraryScriptableObject library => Main.library;
         static BlueprintCharacterClass mystic_theurge = library.Get<BlueprintCharacterClass>("0920ea7e4fd7a404282e3d8b0ac41838");
-        static BlueprintCharacterClass magus_class = library.Get<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
         static BlueprintProgression mystic_theurge_progression = library.Get<BlueprintProgression>("08c1075ef2786ef4fae11e82698a16e0");
-        static BlueprintProgression magus_progression = library.Get<BlueprintProgression>("1b912721a7e075d4f9cfe8dafa39414c");
-        static BlueprintProgression sorcerer_progression = library.Get<BlueprintProgression>("997665565ca80a649aedd72455c4df1f");
-        static BlueprintProgression wizard_progression = library.Get<BlueprintProgression>("02f3049806dbf62459259ea8cae8f715");
-        static BlueprintProgression cleric_progression = library.Get<BlueprintProgression>("b2cd67193d1199f41bc6ecec3a2f2c87");
-        static BlueprintProgression inquisitor_progression = library.Get<BlueprintProgression>("4e945c2fe5e252f4ea61eee7fb560017");
-        static BlueprintProgression druid_progression = library.Get<BlueprintProgression>("01006f2ac8866764fb7af135e73be81c");
-        static BlueprintProgression ranger_progression = library.Get<BlueprintProgression>("97261d609529d834eba4fd4da1bc44dc");
-        static BlueprintProgression paladin_progression = library.Get<BlueprintProgression>("fd325cbba872e5f40b618970678db002");
-        static BlueprintProgression bard_progression = library.Get<BlueprintProgression>("8127f5ff40f5b484b8be98609358b9d2");
-        static BlueprintArchetype eldritch_scoundrel = library.Get<BlueprintArchetype>("57f93dd8423c97c49989501281296c4a");
-        
         static BlueprintFeature spell_synthesis;
         static BlueprintFeature extra_spell_synthesis;
         static BlueprintFeature lesser_spell_synthesis;
         static BlueprintFeature extra_lesser_spell_synthesis;
         static BlueprintFeature theurgy;
-        static public BlueprintFeature spell_specialization;
-
 
         public static void load()
         {
@@ -125,9 +110,9 @@ namespace CallOfTheWild
                                     Kingmaker.UnitLogic.Abilities.Blueprints.AbilityRange.Personal,
                                     Helpers.oneRoundDuration,
                                     "",
-                                    Helpers.CreateRunActions(Common.createContextActionApplyBuff(arcane_buff, Helpers.CreateContextDuration(1), dispellable: false),
-                                                             Common.createContextActionApplyBuff(divine_buff, Helpers.CreateContextDuration(1), dispellable: false),
-                                                             Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(1), dispellable: false)
+                                    Helpers.CreateRunActions(Common.createContextActionApplyBuff(arcane_buff, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 9),
+                                                             Common.createContextActionApplyBuff(divine_buff, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 9)
+                                                             //Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(1), dispellable: false)
                                                              ),
                                     Helpers.CreateResourceLogic(resource)
                                     );
@@ -414,18 +399,6 @@ namespace CallOfTheWild
             extra_spell_synthesis.Ranks = 10;
 
             library.AddFeats(extra_spell_synthesis);
-        }
-
-
-        static BlueprintAbility acid_splash = library.Get<BlueprintAbility>("0c852a2405dd9f14a8bbcfaf245ff823");
-
-        static void cantripScaling()
-        {
-
-            acid_splash.AddComponent(Helpers.CreateContextRankConfig(type: AbilityRankType.DamageDice, max: 15, feature: MetamagicFeats.intensified_metamagic));
-
-
-            
         }
     }
 }

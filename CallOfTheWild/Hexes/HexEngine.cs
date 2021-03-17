@@ -76,6 +76,7 @@ namespace CallOfTheWild
 
         static public BlueprintFeatureSelection hex_strike;
         static public BlueprintAbility hex_strike_base;
+        public BlueprintArchetype hex_archetype;
 
         public static void Initialize()
         {
@@ -154,11 +155,13 @@ namespace CallOfTheWild
             return rod;
         }
 
+
         public HexEngine(BlueprintCharacterClass[] scaling_classes, StatType scaling_stat, StatType secondary_scaling_stat = StatType.Charisma, BlueprintArchetype archetype = null)
         {
             hex_classes = scaling_classes;
             hex_stat = scaling_stat;
             hex_secondary_stat = secondary_scaling_stat;
+            hex_archetype = archetype;
             foreach (var c in hex_classes)
             {
                 var conversion_feature = Helpers.CreateFeature(c.name + "AmblifiedHexSpontaneousConversion",
@@ -196,7 +199,14 @@ namespace CallOfTheWild
         {
             foreach (var c in hex_classes)
             {
-               hex_feature.AddComponent(Helpers.PrerequisiteClassLevel(c, 10, true));
+                if (hex_archetype != null && hex_archetype.GetParentClass() == c)
+                {
+                    hex_feature.AddComponent(Common.createPrerequisiteArchetypeLevel(hex_archetype, 10, true));
+                }
+                else
+                {
+                    hex_feature.AddComponent(Helpers.PrerequisiteClassLevel(c, 10, true));
+                }
             }
         }
 
@@ -205,7 +215,14 @@ namespace CallOfTheWild
         {
             foreach (var c in hex_classes)
             {
-                hex_feature.AddComponent(Helpers.PrerequisiteClassLevel(c, 18, true));
+                if (hex_archetype != null && hex_archetype.GetParentClass() == c)
+                {
+                    hex_feature.AddComponent(Common.createPrerequisiteArchetypeLevel(hex_archetype, 18, true));
+                }
+                else
+                {
+                    hex_feature.AddComponent(Helpers.PrerequisiteClassLevel(c, 18, true));
+                }
             }
         }
 

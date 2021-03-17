@@ -4,6 +4,7 @@ using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.EntitySystem.Stats;
+using Kingmaker.Enums;
 using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules;
@@ -27,6 +28,8 @@ namespace CallOfTheWild.ShadowSpells
         public static BlueprintBuff shadow20_buff;
         public static BlueprintBuff shadow60_buff;
         public static BlueprintBuff shadow80_buff;
+
+
 
 
         static internal void init()
@@ -94,6 +97,27 @@ namespace CallOfTheWild.ShadowSpells
 
             return null;
         }
+
+
+        static bool disbelief_save_in_progress = false;
+       
+        public static bool is_making_disbelief_save
+        {
+            get
+            {
+                return disbelief_save_in_progress;
+            }
+        }
+
+        static public bool makeDisbeliefSave(MechanicsContext context, UnitEntityData target)
+        {
+            disbelief_save_in_progress = true;
+            Common.AddBattleLogMessage(target.CharacterName + " attempts a disbelief saving throw");
+            RuleSavingThrow ruleSavingThrow = context.TriggerRule<RuleSavingThrow>(new RuleSavingThrow(target, SavingThrowType.Will, context.Params.DC));
+            bool res =  ruleSavingThrow.IsPassed;
+            disbelief_save_in_progress = false;
+            return res;
+        }
     }
 
 
@@ -126,6 +150,60 @@ namespace CallOfTheWild.ShadowSpells
     }
 
 
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class SavingthrowBonusAgainstDisbelief : RuleInitiatorLogicComponent<RuleSavingThrow>
+    {
+        public SpellSchool school;
+        public ModifierDescriptor descriptor;
+        public ContextValue value;
+        public SavingThrowType save_type = SavingThrowType.Will;
+
+        public override void OnEventAboutToTrigger(RuleSavingThrow evt)
+        {
+            var context = evt.Reason?.Context;
+            if (context == null)
+            {
+                return;
+            }
+
+            var caster = context.MaybeCaster;
+            if (caster == null)
+            {
+                return;
+            }
+
+            if (caster != this.Owner.Unit)
+            {
+                return;
+            }
+
+            if (!ShadowSpells.is_making_disbelief_save)
+            {
+                return;
+            }
+
+            if (context.SpellSchool == school
+                 && (save_type == SavingThrowType.Unknown || evt.Type == save_type)
+                 && (context?.SourceAbility.GetComponent<DisbeliefSpell>() != null
+                     || (context.SpellDescriptor.Intersects((SpellDescriptor)AdditionalSpellDescriptors.ExtraSpellDescriptor.Shadow)
+                         && !evt.Initiator.Ensure<UnitPartDisbelief>().disbelief_contexts.ContainsKey(context)
+                         )
+                    )
+                )
+            {
+                int bonus = this.value.Calculate(this.Fact.MaybeContext);
+                evt.AddTemporaryModifier(evt.Initiator.Stats.SaveWill.AddModifier(bonus, (GameLogicComponent)this, descriptor));
+                evt.AddTemporaryModifier(evt.Initiator.Stats.SaveReflex.AddModifier(bonus, (GameLogicComponent)this, descriptor));
+                evt.AddTemporaryModifier(evt.Initiator.Stats.SaveFortitude.AddModifier(bonus, (GameLogicComponent)this, descriptor));
+            }
+        }
+
+        public override void OnEventDidTrigger(RuleSavingThrow evt)
+        {
+        }
+    }
+
+
     public class ResilentSpells : OwnedGameLogicComponent<UnitDescriptor>, MetamagicFeats.IRuleSavingThrowTriggered
     {
         public SpellSchool school = SpellSchool.Illusion;
@@ -155,6 +233,11 @@ namespace CallOfTheWild.ShadowSpells
                 return;
             }
 
+            if (!ShadowSpells.is_making_disbelief_save)
+            {
+                return;
+            }
+
             if (context.SpellSchool == school
                  && (save_type == SavingThrowType.Unknown || evt.Type == save_type)
                  && (context?.SourceAbility.GetComponent<DisbeliefSpell>() != null
@@ -176,67 +259,7 @@ namespace CallOfTheWild.ShadowSpells
 
     namespace Patches
     {
-        /*[Harmony12.HarmonyPatch(typeof(RuleSpellResistanceCheck))]
-        [Harmony12.HarmonyPatch("HasResistanceRoll", Harmony12.MethodType.Getter)]
-        class Patch_RuleSpellResistanceCheck_HasResistanceRoll_Prefix
-        {
-            //static public Dictionary<(MechanicsContext, UnitEntityData), bool> passed_disbilief_spell_target_map = new Dictionary<(MechanicsContext, UnitEntityData), bool>();
-            static public bool Prefix(RuleSpellResistanceCheck __instance, ref bool __result)
-            {
-                if (__instance.Target == null || __instance.Context == null)
-                {
-                    return true;
-                }
-                if (__instance.Context.SpellDescriptor.Intersects((SpellDescriptor)AdditionalSpellDescriptors.ExtraSpellDescriptor.Shadow) 
-                     &&  !__instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts.ContainsKey(__instance.Context))
-                {
-                    RuleSavingThrow ruleSavingThrow = __instance.Context.TriggerRule<RuleSavingThrow>(new RuleSavingThrow(__instance.Target, SavingThrowType.Will, __instance.Context.Params.DC));
-                    __instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts[__instance.Context] = ruleSavingThrow.IsPassed;
-                }
-                return true;
-            }
-        }*/
 
-
-        /*[Harmony12.HarmonyPatch(typeof(AreaEffectEntityData))]
-        [Harmony12.HarmonyPatch("TryOvercomeSpellResistance", Harmony12.MethodType.Normal)]
-        class Patch_AreaEffectEntityData_TryOvercomeSpellResistance_Prefix
-        {
-            static public bool Prefix(AreaEffectEntityData __instance, UnitEntityData unit, ref bool __result)
-            {
-                if (unit == null || __instance.Context == null)
-                {
-                    return true;
-                }
-
-                if (__instance.Context.SpellDescriptor.Intersects((SpellDescriptor)AdditionalSpellDescriptors.ExtraSpellDescriptor.Shadow)
-                     && !unit.Ensure<UnitPartDisbelief>().disbelief_contexts.ContainsKey(__instance.Context))
-                {
-                    RuleSavingThrow ruleSavingThrow = __instance.Context.TriggerRule<RuleSavingThrow>(new RuleSavingThrow(unit, SavingThrowType.Will, __instance.Context.Params.DC));
-                    unit.Ensure<UnitPartDisbelief>().disbelief_contexts[__instance.Context] = ruleSavingThrow.IsPassed;
-                }
-                return true;
-            }
-        }*/
-
-
-        /*[Harmony12.HarmonyPatch(typeof(UnitEntityData))]
-        [Harmony12.HarmonyPatch("LeaveCombat", Harmony12.MethodType.Normal)]
-        class UnitEntityData__LeaveCombat__Patch
-        {
-            static void Postfix(UnitEntityData __instance)
-            {
-                var keys = Patch_RuleSpellResistanceCheck_HasResistanceRoll_Prefix.passed_disbilief_spell_target_map.Keys.ToArray();
-                foreach (var k in keys)
-                {
-                    if (k.Item1?.MaybeCaster == __instance
-                        || k.Item2 == __instance)
-                    {
-                        Patch_RuleSpellResistanceCheck_HasResistanceRoll_Prefix.passed_disbilief_spell_target_map.Remove(k);
-                    }
-                }
-            }
-        }*/
 
         //check damage
         [Harmony12.HarmonyPatch(typeof(RuleDealDamage))]
@@ -277,8 +300,14 @@ namespace CallOfTheWild.ShadowSpells
 
                 if (!__instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts.ContainsKey(context2))
                 {
-                    RuleSavingThrow ruleSavingThrow = context2.TriggerRule<RuleSavingThrow>(new RuleSavingThrow(__instance.Target, SavingThrowType.Will, context2.Params.DC));
-                    __instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts[context2] = ruleSavingThrow.IsPassed;
+                    if (__instance.Target.Descriptor.State.HasCondition(UnitCondition.TrueSeeing))
+                    {
+                        __instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts[context2] = true;
+                    }
+                    else
+                    {
+                        __instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts[context2] = ShadowSpells.makeDisbeliefSave(context2, __instance.Target);
+                    }
                 }
 
                 if (__instance.Target.Ensure<UnitPartDisbelief>().disbelief_contexts[context2])
@@ -360,8 +389,14 @@ namespace CallOfTheWild.ShadowSpells
 
                 if (!__instance.Initiator.Ensure<UnitPartDisbelief>().disbelief_contexts.ContainsKey(context2))
                 {
-                    RuleSavingThrow ruleSavingThrow = context2.TriggerRule<RuleSavingThrow>(new RuleSavingThrow(__instance.Initiator, SavingThrowType.Will, context2.Params.DC));
-                    __instance.Initiator.Ensure<UnitPartDisbelief>().disbelief_contexts[context2] = ruleSavingThrow.IsPassed;
+                    if (__instance.Initiator.Descriptor.State.HasCondition(UnitCondition.TrueSeeing))
+                    {
+                        __instance.Initiator.Ensure<UnitPartDisbelief>().disbelief_contexts[context2] = true;
+                    }
+                    else
+                    {
+                        __instance.Initiator.Ensure<UnitPartDisbelief>().disbelief_contexts[context2] = ShadowSpells.makeDisbeliefSave(context2, __instance.Initiator);
+                    }
                 }
 
                 if (__instance.Initiator.Ensure<UnitPartDisbelief>().disbelief_contexts[context2])

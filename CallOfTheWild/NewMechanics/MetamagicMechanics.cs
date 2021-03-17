@@ -83,7 +83,10 @@ namespace CallOfTheWild
                 {
                     return false;
                 }
-
+                if (data?.Spellbook == null)
+                {
+                    return false;
+                }
 
                 if (spellbook != null && spellbook != data.Spellbook.Blueprint)
                 {
@@ -715,7 +718,6 @@ namespace CallOfTheWild
                 bool is_metamagic_not_available = ability == null 
                                                  || (data?.Spellbook == null || ability.Type != AbilityType.Spell)
                                                  || ((ability.AvailableMetamagic & Metamagic) == 0);
-                Main.logger.Log(is_metamagic_not_available.ToString());
                 if (is_metamagic_not_available)
                 {
                     return false;
@@ -788,6 +790,98 @@ namespace CallOfTheWild
         }
 
 
+
+        [AllowedOn(typeof(BlueprintBuff))]
+        public class MetamagicIfHasParametrizedFeature : AutoMetamagicExtender, IInitiatorRulebookHandler<RuleCastSpell>, IInitiatorRulebookHandler<RuleCalculateAbilityParams>, IInitiatorRulebookSubscriber
+        {
+            public BlueprintParametrizedFeature[] required_features;
+            public BlueprintAbilityResource resource = null;
+            public int amount;
+            public BlueprintUnitFact[] cost_reducing_facts = new BlueprintUnitFact[0];
+            private int cost_to_pay = -1;
+            public int increase_spell_dc;
+
+            private int calculate_cost(UnitEntityData caster)
+            {
+                var cost = amount;
+                foreach (var f in cost_reducing_facts)
+                {
+                    if (caster.Buffs.HasFact(f))
+                    {
+                        cost--;
+                    }
+                }
+                return cost < 0 ? 0 : cost;
+            }
+
+            public override bool CanBeUsedOn(BlueprintAbility ability, [CanBeNull] AbilityData data)
+            {
+                bool is_metamagic_not_available = ability == null
+                                                 || (data?.Spellbook == null || ability.Type != AbilityType.Spell)
+                                                 || ((ability.AvailableMetamagic & Metamagic) == 0);
+
+                if (is_metamagic_not_available)
+                {
+                    return false;
+                }
+
+                if (!this.Owner.Unit.Descriptor.Progression.Features.Enumerable.Where<Kingmaker.UnitLogic.Feature>(p => required_features.Contains(p.Blueprint)).Any(p => p.Param == ability))
+                {
+                    return false;
+                }
+
+                int cost = calculate_cost(this.Owner.Unit);
+                if (resource != null && this.Owner.Resources.GetResourceAmount((BlueprintScriptableObject)this.resource) < cost)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+
+            public override void OnEventAboutToTrigger(RuleCalculateAbilityParams evt)
+            {
+                cost_to_pay = -1;
+                if (!CanBeUsedOn(evt.Spell, evt.AbilityData))
+                {
+                    return;
+                }
+                cost_to_pay = calculate_cost(this.Owner.Unit);
+                evt.AddMetamagic(Metamagic);
+
+                if (increase_spell_dc > 0)
+                {
+                    evt.AddBonusDC(increase_spell_dc);
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleCalculateAbilityParams evt)
+            {
+            }
+
+            public void OnEventAboutToTrigger(RuleCastSpell evt)
+            {
+                if (cost_to_pay == -1 || evt.Spell.SourceItem != null)
+                {
+                    cost_to_pay = -1;
+                    return;
+                }
+            }
+
+            public void OnEventDidTrigger(RuleCastSpell evt)
+            {
+
+                if (cost_to_pay == -1)
+                {
+                    return;
+                }
+                this.Owner.Resources.Spend(resource, cost_to_pay);
+                cost_to_pay = -1;
+            }
+        }
+
+
         public class ConsumeRodCharge: ContextAction
         {
             public BlueprintActivatableAbility rod_ability;
@@ -851,7 +945,7 @@ namespace CallOfTheWild
                     return;
                 }
 
-                bool same_spells = evt.Spell.Parent == null ? SpellDuplicates.isDuplicate(evt.Spell, spell) : SpellDuplicates.isDuplicate(evt.Spell.Parent, spell);
+                bool same_spells = SpellDuplicates.isDuplicateOrParent(spell, evt.Spell);
 
                 if (!same_spells)
                 {
@@ -882,7 +976,7 @@ namespace CallOfTheWild
             public override void OnEventAboutToTrigger(RuleApplyMetamagic evt)
             {
                 var spellbook = evt.Spellbook;
-                if (spellbook == null || !spells.Contains(evt.Spell))
+                if (spellbook == null || !SpellDuplicates.containsDuplicateOrParent(spells, evt.Spell))
                 {
                     return;
                 }
@@ -911,7 +1005,7 @@ namespace CallOfTheWild
                 }
 
                 var spellbook = evt.Spellbook;
-                if (spellbook == null || !SpellDuplicates.isDuplicate(spell, evt.Spell))
+                if (spellbook == null || !SpellDuplicates.isDuplicateOrParent(spell, evt.Spell))
                 {
                     return;
                 }
@@ -944,6 +1038,136 @@ namespace CallOfTheWild
         }
 
 
-        
+
+        public class ChangeSpellElementalDamage : OwnedGameLogicComponent<UnitDescriptor>, IInitiatorRulebookHandler<RuleCastSpell>, IRulebookHandler<RuleCastSpell>, IInitiatorRulebookSubscriber, IInitiatorRulebookHandler<RulePrepareDamage>, IRulebookHandler<RulePrepareDamage>
+        {
+            public DamageEnergyType Element;
+
+            public void OnEventAboutToTrigger(RuleCastSpell evt)
+            {
+            }
+
+            public void OnEventDidTrigger(RuleCastSpell evt)
+            {
+                AbilityExecutionContext context = evt.Context;
+                context.RemoveSpellDescriptor(SpellDescriptor.Fire);
+                context.RemoveSpellDescriptor(SpellDescriptor.Cold);
+                context.RemoveSpellDescriptor(SpellDescriptor.Acid);
+                context.RemoveSpellDescriptor(SpellDescriptor.Electricity);
+                context.AddSpellDescriptor(ChangeSpellElementalDamage.ElementToSpellDescriptor(this.Element));
+                //context.Recalculate();
+            }
+
+            public void OnEventAboutToTrigger(RulePrepareDamage evt)
+            {
+                var context2 = Helpers.GetMechanicsContext()?.SourceAbilityContext;
+                if (context2 == null)
+                {
+                    var source_buff = (evt.Reason?.Item as ItemEntityWeapon)?.Blueprint.GetComponent<NewMechanics.EnchantmentMechanics.WeaponSourceBuff>()?.buff;
+
+                    if (source_buff != null)
+                    {
+                        context2 = evt.Initiator.Buffs?.GetBuff(source_buff)?.MaybeContext?.SourceAbilityContext;
+                    }
+                }
+                if (context2 == null)
+                {
+                    return;
+                }
+
+                if (context2.SourceAbility.IsSpell)
+                {
+
+                    foreach (BaseDamage item in evt.DamageBundle)
+                    {
+                        (item as EnergyDamage)?.ReplaceEnergy(this.Element);
+                    }
+                }
+            }
+
+            public void OnEventDidTrigger(RulePrepareDamage evt)
+            {
+            }
+
+            private static SpellDescriptor ElementToSpellDescriptor(DamageEnergyType element)
+            {
+                switch (element)
+                {
+                    case DamageEnergyType.Fire:
+                        return SpellDescriptor.Fire;
+                    case DamageEnergyType.Cold:
+                        return SpellDescriptor.Cold;
+                    case DamageEnergyType.Electricity:
+                        return SpellDescriptor.Electricity;
+                    case DamageEnergyType.Acid:
+                        return SpellDescriptor.Acid;
+                    default:
+                        return SpellDescriptor.Fire;
+                }
+            }
+
+            public override void Validate(ValidationContext context)
+            {
+                base.Validate(context);
+                if (this.Element == DamageEnergyType.Fire || this.Element == DamageEnergyType.Cold || (this.Element == DamageEnergyType.Acid || this.Element == DamageEnergyType.Electricity))
+                    return;
+                context.AddError("Only Fire, Cold, Acid or Electricity are allowed", (object[])Array.Empty<object>());
+            }
+        }
+
+
+
+
+        [ComponentName("Apply metamagic for resource")]
+        [AllowedOn(typeof(Kingmaker.Blueprints.Facts.BlueprintUnitFact))]
+        public class ApplyMetamagicToPersonalSpell : RuleInitiatorLogicComponent<RuleCastSpell>, IInitiatorRulebookSubscriber
+        {
+            public Metamagic metamagic;
+            public int caster_level_increase;
+            public int dc_increase;
+
+            public override void OnEventAboutToTrigger(RuleCastSpell evt)
+            {
+
+            }
+
+            public override void OnEventDidTrigger(RuleCastSpell evt)
+            {
+                if (evt.Spell.Blueprint == null || !Common.isPersonalSpell(evt.Spell) || evt.Spell.Blueprint.Type != AbilityType.Spell)
+                {
+                    return;
+                }
+                if (evt.Context.MainTarget != evt.Context.MaybeCaster)
+                {
+                    return;
+                }
+
+                evt.Context.Params.CasterLevel += caster_level_increase;
+                evt.Context.Params.DC += dc_increase;
+
+                if ((evt.Spell.Blueprint.AvailableMetamagic & metamagic) > 0)
+                {
+                    evt.Context.Params.Metamagic = evt.Context.Params.Metamagic | metamagic;
+                }
+                evt.Context.RecalculateRanks();
+
+                //in case there is no explicit context rank config, it will not be recalcualted by above function, so we should do it manually
+                var found_values = new bool[Enum.GetValues(typeof(AbilityRankType)).Cast<int>().Max() + 1];
+                evt.Spell.Blueprint.GetComponents<ContextRankConfig>().ForEach(c => found_values[(int)c.Type] = true);
+                var ranks = Helpers.GetField<int[]>(evt.Context, "m_Ranks");
+                for (int i = 0; i < found_values.Length; i++)
+                {
+                    if (!found_values[i])
+                    {
+                        ranks[i] += caster_level_increase;
+                    }
+                }
+
+                evt.Context.RecalculateSharedValues();
+            }
+        }
+
+
+
     }
 }

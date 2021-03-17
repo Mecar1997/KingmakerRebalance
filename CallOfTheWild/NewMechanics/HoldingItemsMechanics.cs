@@ -237,6 +237,34 @@ namespace CallOfTheWild.HoldingItemsMechanics
     }
 
 
+
+    public class UseSpellCombatWithShield : CanUseSpellCombatBase
+    {
+        public override bool canBeUsedOn(HandSlot primary_hand_slot, HandSlot secondary_hand_slot, bool use_two_handed)
+        {
+            if (use_two_handed)
+            {
+                return false;
+            }
+
+            var shield = secondary_hand_slot?.MaybeShield;
+
+            return shield != null;
+        }
+
+        public override void OnFactActivate()
+        {
+            this.Owner.Ensure<UnitPartCanUseSpellCombat>().addBuff(this.Fact);
+        }
+
+
+        public override void OnFactDeactivate()
+        {
+            this.Owner.Ensure<UnitPartCanUseSpellCombat>().removeBuff(this.Fact);
+        }
+    }
+
+
     public class UseSpellCombatWith2ManifestedWeapons : CanUseSpellCombatBase
     {
         public BlueprintWeaponEnchantment required_enchant;
@@ -311,78 +339,7 @@ namespace CallOfTheWild.HoldingItemsMechanics
         }
     }
 
-    public class UseSpellCombatWithOffhand : CanUseSpellCombatBase
-    {
-        public override bool canBeUsedOn(HandSlot primary_hand_slot, HandSlot secondary_hand_slot, bool use_two_handed)
-        {
-            if (use_two_handed)
-            {
-                return false;
-            }
 
-            var weapon = primary_hand_slot?.MaybeWeapon;
-
-            if (weapon == null)
-            {
-                return false;
-            }
-
-            if (weapon.Blueprint.Double)
-            {
-                return true;
-            }
-
-            if (secondary_hand_slot != null && !Helpers.hasFreeHand(secondary_hand_slot))
-            {
-                return true;
-            }
-
-
-            return true;
-        }
-
-        public override void OnFactActivate()
-        {
-            this.Owner.Ensure<UnitPartCanUseSpellCombat>().addBuff(this.Fact);
-        }
-
-
-        public override void OnFactDeactivate()
-        {
-            this.Owner.Ensure<UnitPartCanUseSpellCombat>().removeBuff(this.Fact);
-        }
-    }
-
-    public class UseSpellCombatWith2hWeapon : CanUseSpellCombatBase
-    {
-
-        public override bool canBeUsedOn(HandSlot primary_hand_slot, HandSlot secondary_hand_slot, bool use_two_handed)
-        {
-            var weapon = primary_hand_slot?.MaybeWeapon;
-            if (weapon == null)
-            {
-                return false;
-            }
-
-            if (secondary_hand_slot != null && !Helpers.hasFreeHand(secondary_hand_slot))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override void OnFactActivate()
-        {
-            this.Owner.Ensure<UnitPartCanUseSpellCombat>().addBuff(this.Fact);
-        }
-
-
-        public override void OnFactDeactivate()
-        {
-            this.Owner.Ensure<UnitPartCanUseSpellCombat>().removeBuff(this.Fact);
-        }
-    }
 
 
     [AllowMultipleComponents]

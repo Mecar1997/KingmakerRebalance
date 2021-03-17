@@ -112,6 +112,7 @@ namespace CallOfTheWild
         static public BlueprintArchetype psychic_detective;
         static public BlueprintFeature psychic_spellcasting;
         static public BlueprintSpellbook psychic_detective_spellbook;
+        static public BlueprintFeature psychic_meddler;
         static public BlueprintFeatureSelection phrenic_dabbler;
         static public BlueprintFeature extra_phrenic_pool;
         static public BlueprintFeatureSelection extra_phrenic_amplification;
@@ -466,12 +467,16 @@ namespace CallOfTheWild
             createPhrenicDabbler();
             createPsychicDiscoveries();
 
-
-
-
-
-
-
+            psychic_meddler = Helpers.CreateFeature("PsychicMeddlerFeature",
+                                                        "Psychic Meddler",
+                                                        "At 2nd level, a psychic detective receives a +1 bonus on saves against mind-affecting spells and spell-like abilities. This bonus increases by 1 at 5th level and every 3 levels thereafter, to a maximum of +6 at 17th level.",
+                                                        "",
+                                                        Helpers.GetIcon("eabf94e4edc6e714cabd96aa69f8b207"), //mind fog
+                                                        FeatureGroup.None,
+                                                        Common.createContextSavingThrowBonusAgainstDescriptor(Helpers.CreateContextValue(AbilityRankType.Default), ModifierDescriptor.UntypedStackable, SpellDescriptor.MindAffecting),
+                                                        Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, classes: getInvestigatorArray(), progression: ContextRankProgression.StartPlusDivStep,
+                                                                                        startLevel: 2, stepLevel: 3)
+                                                        );
 
             psychic_detective.RemoveFeatures = new LevelEntry[] {
                                                                    Helpers.LevelEntry(2, poison_resistance),
@@ -479,13 +484,13 @@ namespace CallOfTheWild
                                                                    Helpers.LevelEntry(11, poison_immunity),
                                                                 };
             psychic_detective.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, detect_magic, psychic_spellcasting),
-                                                               Helpers.LevelEntry(2),
+                                                               Helpers.LevelEntry(2, psychic_meddler),
                                                                Helpers.LevelEntry(3, phrenic_dabbler)
                                                              };
 
             psychic_detective.ReplaceSpellbook = psychic_detective_spellbook;
             investigator_class.Progression.UIDeterminatorsGroup = investigator_class.Progression.UIDeterminatorsGroup.AddToArray(detect_magic, psychic_spellcasting);
-            investigator_class.Progression.UIGroups = investigator_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(phrenic_dabbler));
+            investigator_class.Progression.UIGroups = investigator_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(psychic_meddler, phrenic_dabbler));
 
             psychic_detective.ReplaceClassSkills = true;
             psychic_detective.ClassSkills = new StatType[] {StatType.SkillStealth, StatType.SkillThievery,
@@ -1089,12 +1094,13 @@ namespace CallOfTheWild
                                                     "",
                                                     Helpers.GetIcon("1bb08308c9f6a5e4697887cd438b7221"), //judgement protection
                                                     FeatureGroup.None,
-                                                    Helpers.Create<NewMechanics.SpecificSavingThrowBonusAgainstSchool>(s =>
+                                                   
+                                                    Helpers.Create<ShadowSpells.SavingthrowBonusAgainstDisbelief>(s =>
                                                                                                                         {
-                                                                                                                            s.Value = Helpers.CreateContextValue(AbilityRankType.Default);
-                                                                                                                            s.type = SavingThrowType.Will;
-                                                                                                                            s.School = SpellSchool.Illusion;
-                                                                                                                            s.ModifierDescriptor = ModifierDescriptor.Insight;
+                                                                                                                            s.value = Helpers.CreateContextValue(AbilityRankType.Default);
+                                                                                                                            s.save_type = SavingThrowType.Will;
+                                                                                                                            s.school = SpellSchool.Illusion;
+                                                                                                                            s.descriptor = ModifierDescriptor.Insight;
                                                                                                                         }
                                                                                                                       ),
                                                     Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel, classes: getInvestigatorArray(),
@@ -1557,7 +1563,7 @@ namespace CallOfTheWild
 
             Dictionary<string, BlueprintBuff> inspiration_buffs = new Dictionary<string, BlueprintBuff>();
             var description = "An investigator is beyond knowledgeable and skilled—he also possesses keen powers of observation and deduction that far surpass the abilities of others. An investigator typically uses these powers to aid in their investigations, but can also use these flashes of inspiration in other situations.\n"
-                              + "An investigator has the ability to augment skill checks and ability checks through his brilliant inspiration. The investigator has an inspiration pool equal to his investigator level + his Intelligence modifier (minimum 1). An investigator’s inspiration pool refreshes each day, typically after he gets a restful night’s sleep. As a free action, he can expend one use of inspiration from his pool to add 1d6 to the result of that check, including any on which he takes 10 or 20. This choice is made after the check is rolled and before the results are revealed. An investigator can only use inspiration once per check or roll. The investigator can use inspiration on any Knowledge skill checks without expending a use of inspiration.\n"
+                              + "An investigator has the ability to augment skill checks and ability checks through his brilliant inspiration. The investigator has an inspiration pool equal to 1/2 his investigator level + his Intelligence modifier (minimum 1). An investigator’s inspiration pool refreshes each day, typically after he gets a restful night’s sleep. As a free action, he can expend one use of inspiration from his pool to add 1d6 to the result of that check, including any on which he takes 10 or 20. This choice is made after the check is rolled and before the results are revealed. An investigator can only use inspiration once per check or roll. The investigator can use inspiration on any Knowledge skill checks without expending a use of inspiration.\n"
                               + "Inspiration can also be used on attack rolls and saving throws, at the cost of expending two uses of inspiration each time from the investigator’s pool.";
 
             inspiration = Helpers.CreateFeature("InspirationFeature",
@@ -1924,7 +1930,7 @@ namespace CallOfTheWild
                                                           FeatureGroup.None,
                                                           Helpers.CreateAddFact(true_inspiration_base)
                                                           );
-    }
+        }
 
 
         static void createInvestigatorProficiencies()

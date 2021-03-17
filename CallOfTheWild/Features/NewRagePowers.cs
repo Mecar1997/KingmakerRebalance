@@ -22,6 +22,7 @@ using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.Abilities.Components.Base;
 using Kingmaker.UnitLogic.ActivatableAbilities;
+using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Buffs.Components;
 using Kingmaker.UnitLogic.FactLogic;
@@ -98,6 +99,10 @@ namespace CallOfTheWild
         static public BlueprintFeature sharpened_accuracy;
         static public BlueprintBuff sharpened_accuracy_buff;
 
+        static public BlueprintFeature disruptive;
+        static public BlueprintFeature spellbreaker;
+        static public BlueprintFeature clear_mind;
+
         static public List<BlueprintFeature> totems = new List<BlueprintFeature>(new BlueprintFeature[] { library.Get<BlueprintFeature>("d99dfc9238a8a6646b32be09057c1729") });
 
 
@@ -136,15 +141,50 @@ namespace CallOfTheWild
             createFerociousBeast();
             createSharpenedAccuracy();
 
+            createDisruptive();
+            createSpellbreaker();
+            createClearMind();
+
             replaceContextConditionHasFactToContextConditionCasterHasFact(rage_buff, rage_buff, rage_marker_caster); //use rage marker instead of actual rage
 
             //fix group
             var rage_ability = library.Get<BlueprintActivatableAbility>("df6a2cce8e3a9bd4592fb1968b83f730");
             rage_ability.Group = ActivatableAbilityGroupExtension.Rage.ToActivatableAbilityGroup();
-
-
         }
 
+
+        static void createClearMind()
+        {
+            var resource = Helpers.CreateAbilityResource("ClearMindResource", "", "", "", null);
+            resource.SetIncreasedByLevelStartPlusDivStep(1, 5, 1, 5, 1, 0, 0.0f, new BlueprintCharacterClass[] { barbarian_class });
+            var buff = Helpers.CreateBuff("ClearMindBuff",
+                                          "Clear Mind",
+                                          "A barbarian may reroll a failed Will save. The barbarian must take the second result, even if it is worse. The barbarian can use this power once per day + 1 more time per five barbarian level.",
+                                          "",
+                                          Helpers.GetIcon("d316d3d94d20c674db2c24d7de96f6a7"),
+                                          null,
+                                          Helpers.Create<NewMechanics.ModifyD20WithActions>(m =>
+                                          {
+                                              m.Rule = NewMechanics.ModifyD20WithActions.RuleType.SavingThrow;
+                                              m.RollsAmount = 1;
+                                              m.TakeBest = true;
+                                              m.m_SavingThrowType = NewMechanics.ModifyD20WithActions.InnerSavingThrowType.Will;
+                                              m.RerollOnlyIfFailed = true;
+                                              m.required_resource = resource;
+                                              m.actions = Helpers.CreateActionList(Common.createContextActionSpendResource(resource, 1));
+                                          })
+                                          );
+
+            var toggle = Common.buffToToggle(buff, CommandType.Free, true,
+                                             resource.CreateActivatableResourceLogic(ActivatableAbilityResourceLogic.ResourceSpendType.Never),
+                                             Helpers.Create<RestrictionHasFact>(r => r.Feature = rage_marker_caster)
+                                             );
+
+            clear_mind = Common.ActivatableAbilityToFeature(toggle, false);
+            clear_mind.AddComponents(resource.CreateAddAbilityResource(),
+                                     Helpers.PrerequisiteClassLevel(barbarian_class, 8));
+            addToSelection(clear_mind);
+        }
 
         static void createSharpenedAccuracy()
         {
@@ -695,6 +735,59 @@ namespace CallOfTheWild
         }
 
 
+        static internal void createDisruptive()
+        {
+            var buff = Helpers.CreateBuff("RagePowerDisruptiveEffectBuff",
+                                          "",
+                                          "",
+                                          "",
+                                          null,
+                                          null,
+                                          Helpers.CreateAddFact(NewFeats.disruptive)
+                                          );
+            buff.SetBuffFlags(BuffFlags.HiddenInUi);
+            disruptive = Helpers.CreateFeature("DisruptiveRagePowerFeature",
+                                                "Disruptive",
+                                                "When raging, the barbarian gains Disruptive as a bonus feat.\n"
+                                                + NewFeats.disruptive.Name + ": " + NewFeats.disruptive.Description,
+                                                "",
+                                                null,
+                                                FeatureGroup.RagePower,
+                                                Helpers.PrerequisiteFeature(superstition_feature),
+                                                Helpers.PrerequisiteClassLevel(barbarian_class, 8)
+                                                );
+            Common.addContextActionApplyBuffOnFactsToActivatedAbilityBuffNoRemove(rage_buff, buff, disruptive);
+            addToSelection(disruptive);
+        }
+
+
+
+        static internal void createSpellbreaker()
+        {
+            var buff = Helpers.CreateBuff("RagePowerSpellbreakerEffectBuff",
+                                          "",
+                                          "",
+                                          "",
+                                          null,
+                                          null,
+                                          Helpers.CreateAddFact(NewFeats.spellbreaker)
+                                          );
+            buff.SetBuffFlags(BuffFlags.HiddenInUi);
+            spellbreaker = Helpers.CreateFeature("SpellbreakerRagePowerFeature",
+                                                "Spellbreaker",
+                                                "When raging, the barbarian gains Spellbreaker as a bonus feat.\n"
+                                                + NewFeats.spellbreaker.Name + ": " + NewFeats.spellbreaker.Description,
+                                                "",
+                                                null,
+                                                FeatureGroup.RagePower,
+                                                Helpers.PrerequisiteFeature(disruptive),
+                                                Helpers.PrerequisiteClassLevel(barbarian_class, 12)
+                                                );
+            Common.addContextActionApplyBuffOnFactsToActivatedAbilityBuffNoRemove(rage_buff, buff, spellbreaker);
+            addToSelection(spellbreaker);
+        }
+
+
         static internal void createLesserAtavismTotem()
         {
             var animal_fury_buff = library.Get<BlueprintBuff>("a67b51a8074ae47438280be0a87b01b6");
@@ -902,25 +995,19 @@ namespace CallOfTheWild
         {
             var spell_resistance = library.Get<BlueprintAbility>("0a5ddfbcfb3989543ac7c936fc256889");
             superstition_buff = Helpers.CreateBuff("SuperstitionEffectBuff",
-                                                         "Superstition",
-                                                         "The Barbarian gains spell resistance 5. It increases by 5 points at level 4 and every 4 levels therafter to a maximum of 30 at level 20.\n"
-                                                         + "This spell resistance applies both against harmful and friendly spells and spell-like abilities.",
-                                                         "",
-                                                         null,
-                                                         null,
-                                                         Helpers.Create<AddSpellResistance>(s => s.Value = Helpers.CreateContextValue(AbilityRankType.StatBonus)),
-                                                         Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel, progression: ContextRankProgression.Custom,
-                                                                                         type: AbilityRankType.StatBonus, classes: new BlueprintCharacterClass[] { barbarian_class },
-                                                                                         customProgression: new (int, int)[] {
-                                                                                                                                (3, 5),
-                                                                                                                                (7, 10),
-                                                                                                                                (11, 15),
-                                                                                                                                (15, 20),
-                                                                                                                                (19, 25),
-                                                                                                                                (20, 30)
-                                                                                                                             }
-                                                                                         )
-                                                         );
+                                                    "Superstition",
+                                                    "The barbarian gains a +2 competence bonus on saving throws made to resist spells and spell-like abilities. This bonus increases by 1 for every 4 levels the barbarian has. The barbarian cannot be the willing target of any spell and must attempt saving throws to resist all spells, even those cast by allies.",
+                                                    "",
+                                                    null,
+                                                    null,
+                                                    Helpers.Create<HarmlessSaves.SaveAgainstHarmlessSpells>(),
+                                                    Common.createSavingThrowBonusAgainstAbilityType(0, Helpers.CreateContextValue(AbilityRankType.StatBonus), AbilityType.Spell, ModifierDescriptor.Competence),
+                                                    Common.createSavingThrowBonusAgainstAbilityType(0, Helpers.CreateContextValue(AbilityRankType.StatBonus), AbilityType.SpellLike, ModifierDescriptor.Competence),
+                                                    Helpers.CreateContextRankConfig(ContextRankBaseValueType.ClassLevel, classes: new BlueprintCharacterClass[] {barbarian_class },
+                                                                                    progression: ContextRankProgression.StartPlusDivStep, 
+                                                                                    startLevel: - 4, stepLevel: 4, type: AbilityRankType.StatBonus
+                                                                                    )
+                                                    );
             superstition_buff.SetBuffFlags(BuffFlags.HiddenInUi);
 
             superstition_feature = Helpers.CreateFeature("SuperstitionFeature",
@@ -1097,54 +1184,5 @@ namespace CallOfTheWild
             component.Activated.Actions = activated_actions;
             buff.ReplaceComponent<AddFactContextActions>(component);
         }
-    }
-
-
-    [Harmony12.HarmonyPatch(typeof(RuleSpellResistanceCheck))]
-    [Harmony12.HarmonyPatch("HasResistanceRoll", Harmony12.MethodType.Getter)]
-    class Patch_RuleSpellResistanceCheck_HasResistanceRoll_Postfix
-    {
-        static public void Postfix(RuleSpellResistanceCheck __instance, ref bool __result)
-        {
-            Main.TraceLog();
-            if (__result == false && __instance.Target.Descriptor.Buffs.HasFact(NewRagePowers.superstition_buff))
-            {
-                __result = (__instance.Ability != null) && (__instance.Ability.IsSpell);
-            }
-        }
-    }
-
-
-    [Harmony12.HarmonyPatch(typeof(AreaEffectEntityData))]
-    [Harmony12.HarmonyPatch("TryOvercomeSpellResistance", Harmony12.MethodType.Normal)]
-    class Patch_AreaEffectEntityData_TryOvercomeSpellResistance_Transpiler
-    {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = instructions.ToList();
-            var check_sr_index = codes.FindIndex(x => x.opcode == System.Reflection.Emit.OpCodes.Ldfld && x.operand.ToString().Contains("m_Blueprint"));
-
-            codes[check_sr_index + 1] = new Harmony12.CodeInstruction(System.Reflection.Emit.OpCodes.Ldarg_1); //unit (unitEntityData)
-            codes.Insert(check_sr_index + 2, new Harmony12.CodeInstruction(System.Reflection.Emit.OpCodes.Call,
-                                                                           new Func<BlueprintAbilityAreaEffect, UnitEntityData, bool>(hasSr).Method
-                                                                           )
-                        );
-
-            return codes.AsEnumerable();
-        }
-
-
-        static private bool hasSr(BlueprintAbilityAreaEffect area, UnitEntityData unit)
-        {
-            Main.TraceLog();
-            if (unit == null || area == null)
-            {
-                return false;
-            }
-            return area.SpellResistance || unit.Descriptor.Buffs.HasFact(NewRagePowers.superstition_buff);
-        }
-
-
-
     }
 }

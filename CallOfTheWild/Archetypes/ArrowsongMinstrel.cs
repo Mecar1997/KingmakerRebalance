@@ -90,26 +90,26 @@ namespace CallOfTheWild.Archetypes
             Helpers.SetField(archetype, "m_ParentClass", bard_class);
             library.AddAsset(archetype, "");
             archetype.RemoveFeatures = new LevelEntry[] { Helpers.LevelEntry(1, library.Get<BlueprintFeature>("fa3d3b2211a51994785d85e753f612d3")), //bard proficiencies
-                                                          Helpers.LevelEntry(2), //well versed and versatile
-                                                          Helpers.LevelEntry(3), //inspire competence
+                                                          Helpers.LevelEntry(2, bard_class.Progression.LevelEntries[1].Features), //well versed and versatile
+                                                          Helpers.LevelEntry(3, bard_class.Progression.LevelEntries[2].Features), //inspire competence
                                                           Helpers.LevelEntry(6, library.Get<BlueprintFeature>("ddaec3a5845bc7d4191792529b687d65")), //fascinate
-                                                          Helpers.LevelEntry(7), //inspire competence
+                                                          Helpers.LevelEntry(7, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
                                                           Helpers.LevelEntry(8, library.Get<BlueprintFeature>("1d48ab2bded57a74dad8af3da07d313a")), //dirge of doom
-                                                          Helpers.LevelEntry(11), //inspire competence
+                                                          Helpers.LevelEntry(11, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
                                                           Helpers.LevelEntry(12, library.Get<BlueprintFeature>("546698146e02d1e4ea00581a3ea7fe58")), //soothing performance
                                                           Helpers.LevelEntry(14, library.Get<BlueprintFeature>("cfd8940869a304f4aa9077415f93febe")), //frightening tune
-                                                          Helpers.LevelEntry(15), //inspire competence
-                                                          Helpers.LevelEntry(19), //inspire competence
+                                                          Helpers.LevelEntry(15, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
+                                                          Helpers.LevelEntry(19, library.Get<BlueprintFeature>("6d3fcfab6d935754c918eb0e004b5ef7")), //inspire competence
                                                        };
             archetype.ReplaceSpellbook = spellbook;
             archetype.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, weapon_proficiency),
                                                        Helpers.LevelEntry(1, arcane_achery_selection),
                                                        Helpers.LevelEntry(2, precise_minstrel),
-                                                       Helpers.LevelEntry(3, ray_spell_combat),
-                                                       Helpers.LevelEntry(8)};
+                                                       Helpers.LevelEntry(6, arrowsong_strike),
+                                                       Helpers.LevelEntry(18, ray_spell_combat)};
 
             bard_class.Progression.UIDeterminatorsGroup = bard_class.Progression.UIDeterminatorsGroup.AddToArray(weapon_proficiency);
-            bard_class.Progression.UIGroups = bard_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(arcane_achery_selection, precise_minstrel, ray_spell_combat));
+            bard_class.Progression.UIGroups = bard_class.Progression.UIGroups.AddToArray(Helpers.CreateUIGroup(arcane_achery_selection, precise_minstrel, arrowsong_strike, ray_spell_combat));
             bard_class.Archetypes = bard_class.Archetypes.AddToArray(archetype);
 
 
@@ -119,8 +119,8 @@ namespace CallOfTheWild.Archetypes
             archetype.StartingItems = starting_items.RemoveFromArray(library.Get<BlueprintItemEquipmentUsable>("66fc961f9c39ae94fb87a79adc87212e")).AddToArray(library.Get<BlueprintItemEquipmentUsable>("cd635d5720937b044a354dba17abad8d"));
             addToPrestigeClasses();
 
-            //var magus = library.Get<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
-            //magus.AddComponent(Common.prerequisiteNoArchetype(bard_class, archetype));
+            var magus = library.Get<BlueprintCharacterClass>("45a4607686d96a1498891b3286121780");
+            magus.AddComponent(Common.prerequisiteNoArchetype(bard_class, archetype));
         }
 
 
@@ -183,7 +183,7 @@ namespace CallOfTheWild.Archetypes
                                                   "An Arrowsong minstrel’s skill at ranged martial arts allows her to learn to cast a number of powerful, offensive spells that would otherwise be unavailable to her.\n"
                                                   + "Arrowsong Minstrel adds following spells to her spell list: acid arrow, flame arrow, hurricane bow, greater magic weapon, magic weapon, protection from arrows, snowball, true strike, and sorcerer/wizard spells of the evocation school. An Arrowsong minstrel must still select these spells as spells known before she can cast them.\n"
                                                   + "In addition, for the purpose of meeting the requirements of combat feats and prestige classes, an Arrowsong minstrel treats her bard level as her base attack bonus (in addition to base attack bonuses gained from other classes and Hit Dice).\n"
-                                                  + "",
+                                                  + "An Arrowsong minstrel casts one fewer spell of each level than normal. If this reduces the number to 0, she can cast spells of that level only if her Charisma score allows bonus spells of that level.",
                                                   "",
                                                   icon,
                                                   FeatureGroup.None,
@@ -199,24 +199,53 @@ namespace CallOfTheWild.Archetypes
                                                                      );
             arcane_achery_selection.Obligatory = true;
             arcane_achery_selection.AllFeatures = new BlueprintFeature[] { arcane_achery };
+            arcane_achery.AddComponent(Helpers.Create<PrerequisiteNoClassLevel>(p => p.CharacterClass = magus));
         }
 
 
         static void createArrowSongStrike()
         {
+            var bard_class = ResourcesLibrary.TryGetBlueprint<BlueprintCharacterClass>("772c83a25e2268e448e841dcd548235f");
+            var add_spell_combat = Helpers.Create<AddMagusMechanicPart>(); //needed for unit_part magus creation (no actual ability though)
+            Helpers.SetField(add_spell_combat, "m_Feature", 1);
+            Helpers.SetField(add_spell_combat, "m_MagusClass", bard_class);
+            //it should not be used since it sets spell combat to be always active by default (ok on magus though since the corresponding toggle is always active by default)
+
+            var add_magus_part = Helpers.Create<NewMechanics.ActivateUnitPartMagus>(a => a.magus_class = bard_class);
+
+            var add_eldritch_archer = Helpers.Create<AddMagusMechanicPart>();
+            Helpers.SetField(add_eldritch_archer, "m_Feature", 5);
+
+            var add_spellstrike = Helpers.Create<AddMagusMechanicPart>();
+            Helpers.SetField(add_spellstrike, "m_Feature", 2);
+
+            var spellstrike = library.CopyAndAdd<BlueprintActivatableAbility>("e958891ef90f7e142a941c06c811181e", "ArrowsongMinstrelSpellstrike", "");
+            spellstrike.SetName("Arrowsong Strike");
+            spellstrike.SetDescription("At 6th level, an Arrowsong minstrel can use spellstrike (as per the magus class feature) to cast a single-target ranged touch attack spell and deliver it through a ranged weapon attack.");
+            spellstrike.SetIcon(NewSpells.flame_arrow.Icon);
+            arrowsong_strike = Common.ActivatableAbilityToFeature(spellstrike, false);
+            arrowsong_strike.AddComponents(add_magus_part, add_eldritch_archer, add_spellstrike);
+
+            var add_spell_combat18 = library.Get<BlueprintFeature>("2464ba53317c7fc4d88f383fac2b45f9").GetComponent<AddMagusMechanicPart>().CreateCopy(); //spell combat
+            Helpers.SetField(add_spell_combat18, "m_MagusClass", bard_class);
+            var spell_combat_buff = library.Get<BlueprintBuff>("91e4b45ab5f29574aa1fb41da4bbdcf2");
             ray_spell_combat = Helpers.CreateFeature("RaySpellCombatFeature",
-                                                "Arrowsong Archery",
-                                                "At 3rd level, an arrowsong minstrel may use her Charisma modifier instead of his Dexterity modifier on ranged attack rolls when using a bow.",
-                                                "",
-                                                null,
-                                                FeatureGroup.None,
-                                                Helpers.Create<NewMechanics.AttackStatReplacementForWeaponCategory>(c =>
-                                                {
-                                                    c.categories = new WeaponCategory[] { WeaponCategory.Longbow, WeaponCategory.Shortbow};
-                                                    c.ReplacementStat = StatType.Charisma;
-                                                }
-                                                )
-                                                );
+                                                     "Arrowsong Strike II",
+                                                     "At 18th level, an arrowsong minstrel can make a full attack when using arrowsong strike.",
+                                                     "",
+                                                     LoadIcons.Image2Sprite.Create(@"AbilityIcons/LingeringAcid.png"),
+                                                     FeatureGroup.None,
+                                                     Helpers.CreateAddFact(Common.ignore_spell_combat_penalty),
+                                                     add_spell_combat18
+                                                     );
+            var spellcombat_penalty_buff = library.Get<BlueprintBuff>("7b4cf64d3a49e3d45b1dbd2385f4eb6d");
+
+            spellcombat_penalty_buff.AddComponent(Helpers.Create<NewMechanics.BuffExtraAttackIfHasFact>(b => { b.num_attacks = -1; b.fact = ray_spell_combat; }));
+            var apply_spell_combat = Common.createContextActionApplyBuff(spell_combat_buff, Helpers.CreateContextDuration(), is_child: true, dispellable: false, is_permanent: true);
+            spellstrike.Buff.AddComponent(Helpers.CreateAddFactContextActions(Helpers.CreateConditional(Common.createContextConditionHasFact(ray_spell_combat),
+                                                                                                        apply_spell_combat)
+                                                                             )
+                                         );
         }
 
 
@@ -246,7 +275,7 @@ namespace CallOfTheWild.Archetypes
             spellbook.name = "ArrowsongMinstrelSpellbook";
             library.AddAsset(spellbook, "");
             spellbook.Name = Helpers.CreateString("ArrowsongMinstrelSpellbook.Name", "Arrowsong Minstrel");
-            spellbook.SpellsPerDay = bard_class.Spellbook.SpellsPerDay;
+            spellbook.SpellsPerDay = Common.increaseNumSpellsCast("ArrowsongMinstrellSpellPerDay", "", bard_class.Spellbook.SpellsPerDay, -1);
             spellbook.SpellsKnown = bard_class.Spellbook.SpellsKnown;
             spellbook.Spontaneous = true;
             spellbook.IsArcane = true;
@@ -318,6 +347,75 @@ namespace CallOfTheWild.Archetypes
 
 
 
-        
+        [Harmony12.HarmonyPatch(typeof(MagusController))]
+        [Harmony12.HarmonyPatch("HandleUnitRunCommand", Harmony12.MethodType.Normal)]
+        public class MagusController_HandleUnitRunCommand_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+                var check_magus_spell_list = codes.FindIndex(x => x.opcode == System.Reflection.Emit.OpCodes.Callvirt && x.operand.ToString().Contains("IsSpellFromMagusSpellList"));
+
+                codes[check_magus_spell_list] = new Harmony12.CodeInstruction(System.Reflection.Emit.OpCodes.Call,
+                                                                           new Func<UnitPartMagus, AbilityData, bool>(canUseSpellForSpellCombat).Method
+                                                                           );
+
+                return codes.AsEnumerable();
+            }
+
+
+            internal static bool canUseSpellForSpellCombat(UnitPartMagus unit_part_magus, AbilityData ability)
+            {
+                if (ability.ActionType != CommandType.Standard || ability.RequireFullRoundAction)
+                {
+                    return false;
+                }
+                if (unit_part_magus.Owner.HasFact(ray_spell_combat))
+                {
+                    return unit_part_magus.IsSuitableForEldritchArcherSpellStrike(ability);
+                }
+                else
+                {
+                    return unit_part_magus.IsSpellFromMagusSpellList(ability);
+                }
+            }
+        }
+
+
+        [Harmony12.HarmonyPatch(typeof(UnitUseAbility))]
+        [Harmony12.HarmonyPatch("CreateCastCommand", Harmony12.MethodType.Normal)]
+        public class MagusController_CreateCastCommand_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+                var check_magus_spell_list = codes.FindIndex(x => x.opcode == System.Reflection.Emit.OpCodes.Callvirt && x.operand.ToString().Contains("IsSpellFromMagusSpellList"));
+
+                codes[check_magus_spell_list] = new Harmony12.CodeInstruction(System.Reflection.Emit.OpCodes.Call,
+                                                                           new Func<UnitPartMagus, AbilityData, bool>(MagusController_HandleUnitRunCommand_Patch.canUseSpellForSpellCombat).Method
+                                                                           );
+
+                return codes.AsEnumerable();
+            }
+
+        }
+
+
+        [Harmony12.HarmonyPatch(typeof(MagusController))]
+        [Harmony12.HarmonyPatch("HandleUnitCommandDidAct", Harmony12.MethodType.Normal)]
+        public class MagusController_HandleUnitCommandDidEnd_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+                var check_magus_spell_list = codes.FindIndex(x => x.opcode == System.Reflection.Emit.OpCodes.Callvirt && x.operand.ToString().Contains("IsSpellFromMagusSpellList"));
+
+                codes[check_magus_spell_list] = new Harmony12.CodeInstruction(System.Reflection.Emit.OpCodes.Call,
+                                                                           new Func<UnitPartMagus, AbilityData, bool>(MagusController_HandleUnitRunCommand_Patch.canUseSpellForSpellCombat).Method
+                                                                           );
+
+                return codes.AsEnumerable();
+            }
+        }
     }
 }

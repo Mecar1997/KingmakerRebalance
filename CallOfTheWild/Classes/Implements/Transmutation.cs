@@ -163,7 +163,7 @@ namespace CallOfTheWild
 
             var cruel = Common.createEnchantmentAbility(prefix + "LegacyWeaponEnchancementCruel",
                                                         "Legacy Weapon - Cruel",
-                                                        $"An occultist can add the vicious property to her weapon, but this consumes 1 point of enhancement bonus granted to this weapon.\n{WeaponEnchantments.cruel.Description}",
+                                                        $"An occultist can add the cruel property to her weapon, but this consumes 1 point of enhancement bonus granted to this weapon.\n{WeaponEnchantments.cruel.Description}",
                                                         LoadIcons.Image2Sprite.Create(@"AbilityIcons/HWCruel.png"),
                                                         weapon_enhancement_buff,
                                                         WeaponEnchantments.cruel,
@@ -432,6 +432,7 @@ namespace CallOfTheWild
             ability.AddComponent(Common.createAbilityTargetHasFact(true, Common.undead, Common.construct, Common.elemental));
             ability.ReplaceComponent<AbilityEffectRunAction>(a => a.Actions = Helpers.CreateActionList(Common.changeAction<ContextActionApplyBuff>(a.Actions.Actions, c => c.Buff = effect_buff)));
             ability.AddComponent(createClassScalingConfig());
+            ability.AddComponent(resource.CreateResourceLogic());
             addFocusInvestmentCheck(ability, SpellSchool.Transmutation);
 
             var feature = Common.AbilityToFeature(ability, false);
